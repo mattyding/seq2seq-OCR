@@ -1,84 +1,115 @@
 """
 File: prepare_data.py
 --------------------
-Given a text file of unsorted text, cleans it up for data preparation.
-The returned text is not entirely accurate. There may be typos or char
-misrecognitions
+Given a csv of clean/unclean text, sorts it for model training.
 """
+import os
+import glob
 import re
 import pandas as pd
 import numpy as np
 import textdistance
+import string
+from settings import TEXT_DIRECTORY, COMB_DIRECTORY
 
-CSV_FILE = "times-1820-1004.csv" # csv with rows of sorted/unsorted text
+#OLD_CSV_FILE = "times-1820-1004.csv" # csv to be processed
+CSV_DIRECTORY = "./csv-files/" # location of the csv files
 
 """
-Plain text names are stored in the following format:
+Plain text filenames are stored in the following format:
 {sort/unsort}_{first three words of title} : {original xml file}
 
-Combined text names are stored in the following format:
+Combined text filenames are stored in the following format:
 {first three words of title} : {original xml file}
 """
 
-TEXT_DIRECTORY = "./text-from-csv/" # folder where all the text files are to be stored
-SORT_TEXT_DIRECTORY = TEXT_DIRECTORY + "raw-text/sort/" 
-UNSORT_TEXT_DIRECTORY = TEXT_DIRECTORY + "raw-text/unsort/"
-COMB_DIRECTORY = "./text-from-csv/combined-text/" #place to store combined data for training
+SORT_TEXT_DIRECTORY = TEXT_DIRECTORY + "raw-text/sort/" # stores sorted plain text files
+UNSORT_TEXT_DIRECTORY = TEXT_DIRECTORY + "raw-text/unsort/" # stores unsorted plain text files
 
-ERROR_MARGIN = .9 # error allowed between an unsorted and sorted word (i.e., .7 similarity)
+
+ERROR_MARGIN = .9 # error allowed between an unsorted and sorted word
 
 def main():
-    df = pd.read_csv(CSV_FILE)
-    filenames = []
-    df.apply(lambda row: sort_data(row, filenames),axis=1,result_type='expand')
+    for csv_file in glob.glob(os.path.join(CSV_DIRECTORY, '*.csv')):
+        df = pd.read_csv(csv_file)
+        filenames = []
+        df.apply(lambda row: sort_data(row, filenames),axis=1,result_type='expand')
 
     all_text = open(TEXT_DIRECTORY + "ALL_TEXT.txt", "w+")
+
+    # prepares all_text
+    all_text.write(" \t \n")
+    chars = [c for c in string.ascii_letters] + [c for c in string.digits] + [c for c in string.punctuation]
+    
+    all_text.write("".join(chars) + "\t" + "".join(chars) + "\n")
+    all_eng_words = open("google-10000-english-no-swears.txt")
+    for line in all_eng_words:
+        line = strip_extraneous(line)
+        all_text.write(str(line) + "\t" + str(line) + "\n")
+
     
     for f in filenames:
         unsorted_text = []
         sorted_text = []
 
-        u_adjust = 0 # these adjust the indices so in case there are extra words somewhere in a list
-        s_adjust = 0 
+        unsort_sent = [strip_extraneous(line) for line in open(UNSORT_TEXT_DIRECTORY + "unsort_" + f, "r")]
+        sort_sent = [clean_text(line) for line in open(SORT_TEXT_DIRECTORY + "sort_" + f, "r")]
 
-        # splits line into words
-        unsort_line = strip_extraneous(open(UNSORT_TEXT_DIRECTORY + "unsort_" + f).readline()).split()
-        sort_line = clean_text(open(SORT_TEXT_DIRECTORY + "sort_" + f).readline()).split()
+        for i in range(min(len(unsort_sent), len(sort_sent))):
 
-        for j in range(min(len(unsort_line), len(sort_line))):
-            # checks if words are close enough matches
-            print("SIZE " + str(len(unsort_line)) + ", " + str(len(sort_line)) + " U " + str(j+u_adjust) + " J " + str(j+s_adjust))
+            u_adjust = 0 # these adjust the indices so in case there are extra words somewhere in a list
+            s_adjust = 0 
 
-            orig_sim = textdistance.levenshtein.normalized_similarity(unsort_line[j+u_adjust], sort_line[j+s_adjust])
-            orig_dist = textdistance.levenshtein(unsort_line[j+u_adjust], sort_line[j+s_adjust])
-            if (orig_sim > ERROR_MARGIN):
-                unsorted_text.append(unsort_line[j])
-                sorted_text.append(sort_line[j])
-            else:
-                if ((j+u_adjust+1) < min(len(unsort_line), len(sort_line))) and ((j+s_adjust +1) <  min(len(unsort_line), len(sort_line))):
-                    u_skipOne_sim = textdistance.levenshtein.normalized_similarity(unsort_line[j+u_adjust+1], sort_line[j+s_adjust])
-                    s_skipOne_sim = textdistance.levenshtein.normalized_similarity(unsort_line[j+u_adjust], sort_line[j+s_adjust+1])
-                    u_skipOne_dist = textdistance.levenshtein(unsort_line[j+u_adjust+1], sort_line[j+s_adjust])
-                    s_skipOne_dist = textdistance.levenshtein(unsort_line[j+u_adjust], sort_line[j+s_adjust+1])
-                    
-                    if ((u_skipOne_sim > ERROR_MARGIN) or (s_skipOne_sim > ERROR_MARGIN)):
-                        # double check this
-                        if ((u_skipOne_dist) < 1) or ((s_skipOne_dist) < 1):
-                            if (max(u_skipOne_sim, s_skipOne_sim) > orig_sim):
-                                if (u_skipOne_sim > s_skipOne_sim):
-                                    s_adjust -= 1
-                                else:
-                                    u_adjust -= 1
-                            
-        comb_file = open(COMB_DIRECTORY + "comb_" + f, "w+")
-        for i in range(len(unsorted_text)):
-            comb_file.write(unsorted_text[i] + "\t" + sorted_text[i] + "\n")
-        comb_file.close()
+            unsort_line = unsort_sent[i].split()
+            sort_line = sort_sent[i].split()
+
+            for j in range(min(len(unsort_line), len(sort_line))):
+                # checks if words are close enough matches
+                #print("SIZE " + str(len(unsort_line)) + ", " + str(len(sort_line)) + " U " + str(j+u_adjust) + " J " + str(j+s_adjust))
+
+                orig_sim = textdistance.levenshtein.normalized_similarity(unsort_line[j+u_adjust], sort_line[j+s_adjust])
+                orig_dist = textdistance.levenshtein(unsort_line[j+u_adjust], sort_line[j+s_adjust])
+                if (orig_sim > ERROR_MARGIN):
+                    unsorted_text.append(unsort_line[j])
+                    sorted_text.append(sort_line[j])
+                else:
+                    if ((j+u_adjust+1) < min(len(unsort_line), len(sort_line))) and ((j+s_adjust +1) <  min(len(unsort_line), len(sort_line))):
+                        u_skipOne_sim = textdistance.levenshtein.normalized_similarity(unsort_line[j+u_adjust+1], sort_line[j+s_adjust])
+                        s_skipOne_sim = textdistance.levenshtein.normalized_similarity(unsort_line[j+u_adjust], sort_line[j+s_adjust+1])
+                        u_skipOne_dist = textdistance.levenshtein(unsort_line[j+u_adjust+1], sort_line[j+s_adjust])
+                        s_skipOne_dist = textdistance.levenshtein(unsort_line[j+u_adjust], sort_line[j+s_adjust+1])
+                        
+                        if ((u_skipOne_sim > ERROR_MARGIN) or (s_skipOne_sim > ERROR_MARGIN)):
+                            # double check this
+                            if ((u_skipOne_dist) < 1) or ((s_skipOne_dist) < 1):
+                                if (max(u_skipOne_sim, s_skipOne_sim) > orig_sim):
+                                    if (u_skipOne_sim > s_skipOne_sim):
+                                        s_adjust -= 1
+                                    else:
+                                        u_adjust -= 1
+                                
+            comb_file = open(COMB_DIRECTORY + "comb_" + f, "w+")
+            for i in range(len(unsorted_text)):
+                if (textdistance.levenshtein.normalized_similarity(unsorted_text[i], sorted_text[i]) > 0.7):
+                    comb_file.write(unsorted_text[i] + "\t" + sorted_text[i] + "\n")
+            comb_file.close()
+
+            for i in range(len(unsorted_text)):
+                if (textdistance.levenshtein.normalized_similarity(unsorted_text[i], sorted_text[i]) > 0.7):
+                    all_text.write(unsorted_text[i] + "\t" + sorted_text[i] + "\n")
+
         print("Created File: " + f)
-
-        for i in range(len(unsorted_text)):
-            all_text.write(unsorted_text[i] + "\t" + sorted_text[i] + "\n")
         print('Added to "ALL_TEXT" file: ' + f)
+        lineCounter = 1
+        accurateCounter = 1
+        for line in open(TEXT_DIRECTORY + "ALL_TEXT.txt", "r"):
+            lineCounter += 1
+            if (textdistance.levenshtein.normalized_similarity(line.split("\t")[0], line.split("\t")[1]) > 0.7):
+                accurateCounter += 1
+        
+        print("Overall Accuracy: " + str(accurateCounter/lineCounter) + "\n")
+    all_text.close()
+
 
 
 def sort_data(row: pd.Series, filenames: list) -> None:
@@ -89,13 +120,45 @@ def sort_data(row: pd.Series, filenames: list) -> None:
     unsort_file = open(UNSORT_TEXT_DIRECTORY + "unsort_" + filename, "w+")
     sort_file = open(SORT_TEXT_DIRECTORY + "sort_" +filename, "w+")
 
-    unsort_text = row["text"]
-    sort_text = row["text_clean"]
+    unsort_lines = strip_extraneous(row["text"]).split(".")
+    sort_lines = strip_extraneous(row["text_clean"]).split(".")
 
-    unsort_file.write(strip_extraneous(unsort_text))
-    sort_file.write(strip_extraneous(sort_text))
+    # removes sentences less than 5 words. (prevents errors later on)
+    for line in unsort_lines:
+        if (len(line.split()) < 5):
+            unsort_lines.remove(line)
+    for line in sort_lines:
+        if (len(line.split()) < 5):
+            sort_lines.remove(line)
+
+    # This code assumes that there are extra periods in the unsorted text and corrects for them
+    correction = 0
+    for i in range(len(sort_lines)):
+        if ((i + correction + 1) >= len(unsort_lines)):
+                print("\nINITIAL INDEX OUT OF RANGE \n")
+                break
+        uString = unsort_lines[i + correction]
+        sString = sort_lines[i]
+
+        print("OUTSIDE LOOP: " + str(textdistance.levenshtein.normalized_similarity(uString, sString)))
+
+        
+        while(textdistance.levenshtein.normalized_similarity(uString, sString) < 0.7):
+            print("INSIDE LOOP: " + str(textdistance.levenshtein.normalized_similarity(uString, sString)))
+            if ((i + correction + 1) >= len(unsort_lines)):
+                print("\nINNER INDEX OUT OF RANGE\n")
+                break
+            if (textdistance.levenshtein.normalized_similarity(uString + unsort_lines[i+correction], sString) < textdistance.levenshtein.normalized_similarity(uString, sString)):
+                break
+
+            correction += 1
+            uString += unsort_lines[i+correction]
+        
+        unsort_file.write(uString + "\n")
+        sort_file.write(sString + "\n")
 
     filenames.append(filename)
+    print("Created File: " + filename)
     return
 
 
