@@ -3,6 +3,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from tensorflow import keras
 from nltk.tokenize import word_tokenize
+from process_coha import clean_text_v2
 from settings import DATA_PATH, LATENT_DIM, NUM_SAMPLES, BREAK_CHAR
 
 FREQ_DIRECTORY = "./word-freq-reports/"
@@ -10,14 +11,22 @@ FREQ_DIRECTORY = "./word-freq-reports/"
 DOC_DIRECTORY = "./text-to-predict/"
 DOC_TO_DECODE = "sampletext.txt"
 
+ENGLISH_LEXICON = "./english-words.txt"
+
+
+""" Preparing English Hashset """
+english_words = set()
+for line in open(ENGLISH_LEXICON):
+    english_words.add(line.strip())
 
 """ Preparing Document """
 doc_text = []
 for line in open(f"{DOC_DIRECTORY}raw-text/{DOC_TO_DECODE}"):
     line = line.replace("\n", " ")
     line = line.replace("\t", "")
+    line = line.replace("- ", "")
     for word in line.split(" "):
-        word = word.strip(" ")
+        word = clean_text_v2(word)
         if len(word) > 0:
             doc_text.append(word)
 
@@ -108,16 +117,19 @@ num_encoder_tokens = encoder_inputs.shape[2]
 
 translated_doc = []
 for word in doc_text:
-    print(f'WORD: "{word}"')
-    word_data = np.zeros((len(input_texts), max_encoder_seq_length, num_encoder_tokens), dtype="float32")
-    for t, char in enumerate(word):
-        word_data[0, t, input_token_index[char]] = 1.0
-    word_data[0, t + 1 :, input_token_index[" "]] = 1.0
-    decoded_word = ""
-    input_seq = word_data[0:1]
-    decoded_word += decode_sequence(input_seq)
-    print("DECODED WORD: ", decoded_word)
-    translated_doc.append(decoded_word.strip("\n"))
+    if word in english_words:
+        translated_doc.append(word)
+    else :
+        print(f'WORD: "{word}"')
+        word_data = np.zeros((len(input_texts), max_encoder_seq_length, num_encoder_tokens), dtype="float32")
+        for t, char in enumerate(word):
+            word_data[0, t, input_token_index[char]] = 1.0
+        word_data[0, t + 1 :, input_token_index[" "]] = 1.0
+        decoded_word = ""
+        input_seq = word_data[0:1]
+        decoded_word += decode_sequence(input_seq)
+        print("DECODED WORD: ", decoded_word)
+        translated_doc.append(decoded_word.strip("\n"))
 
 predicted_doc = open(DOC_DIRECTORY + "predicted/P_" + DOC_TO_DECODE, "w+")
 predicted_doc.write(" ".join(translated_doc))

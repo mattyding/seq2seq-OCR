@@ -2,6 +2,10 @@
 File: prepare_data.py
 --------------------
 Given a csv of clean/unclean text, sorts it for model training.
+
+Issues to fix:
+Line 103
+
 """
 import os
 import glob
@@ -10,10 +14,13 @@ import pandas as pd
 import numpy as np
 import textdistance
 import string
+from process_coha import clean_text_v2
 from settings import TEXT_DIRECTORY, COMB_DIRECTORY
 
 #OLD_CSV_FILE = "times-1820-1004.csv" # csv to be processed
 CSV_DIRECTORY = "./csv-files/" # location of the csv files
+
+ENGLISH_LEXICON = "./english-words.txt"
 
 """
 Plain text filenames are stored in the following format:
@@ -42,9 +49,9 @@ def main():
     chars = [c for c in string.ascii_letters] + [c for c in string.digits] + [c for c in string.punctuation]
     
     all_text.write("".join(chars) + "\t" + "".join(chars) + "\n")
-    all_eng_words = open("google-10000-english-no-swears.txt")
+    all_eng_words = open(ENGLISH_LEXICON)
     for line in all_eng_words:
-        line = strip_extraneous(line)
+        line = line.strip()
         all_text.write(str(line) + "\t" + str(line) + "\n")
 
     
@@ -96,7 +103,9 @@ def main():
 
             for i in range(len(unsorted_text)):
                 if (textdistance.levenshtein.normalized_similarity(unsorted_text[i], sorted_text[i]) > 0.7):
-                    all_text.write(unsorted_text[i] + "\t" + sorted_text[i] + "\n")
+                    if unsorted_text[i] !- "J":
+                        #note: fix this issue later !!
+                        all_text.write(unsorted_text[i] + "\t" + sorted_text[i] + "\n")
 
         print("Created File: " + f)
         print('Added to "ALL_TEXT" file: ' + f)
@@ -172,6 +181,7 @@ def strip_extraneous(text: str) -> str:
 
 def clean_text(text: str) -> str:
     """Remove unwanted characters and extra spaces from the text"""
+    text = text.lower()
     text = strip_extraneous(text)
     text = text.replace('- ','') # gets rid of line breaks
 
@@ -192,25 +202,6 @@ def clean_text(text: str) -> str:
     text = re.sub('\?','? ', text)
     text = re.sub(' +',' ', text)
     return text
-
-
-def close_match(wordUnsort: str, wordSort: str) -> bool:
-    # if the length of the words is too far apart
-    if abs(len(wordUnsort) - len(wordUnsort)) > (len(wordSort) * ERROR_MARGIN):
-        return False
-    
-    # else if the letters of the words are too different
-    tempWord = wordUnsort
-    wrong_letters = 0
-    for letter in wordSort:
-        if letter not in tempWord:
-            wrong_letters += 1
-        else:
-            tempWord = tempWord[0:tempWord.index(letter)-1] + tempWord[tempWord.index(letter)+1:]
-    if (wrong_letters / len(wordSort)) > ERROR_MARGIN:
-        return False
-    
-    return True
 
 
 if __name__ == "__main__":
