@@ -1,6 +1,9 @@
-seq2seq model inspired from keras's sample program
+seq2seq model inspired from keras's sample program: https://git.io/JOwXq
 
-10000 most common english words file from https://github.com/first20hours/google-10000-english. 
-english lexicon taken from COHA: https://www.english-corpora.org/coha/
+Training data of historical English text taken from the following sources:
+
+COHA: https://www.english-corpora.org/coha/
+Hansard: https://hansard.parliament.uk/
+Google: http://storage.googleapis.com/books/ngrams/books/datasetsv2.html
+
 noise function inspired by: https://github.com/Currie32/Spell-Checker
-training performed on floydhub.com
