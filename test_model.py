@@ -1,3 +1,5 @@
+import os
+import pathlib
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -9,7 +11,8 @@ from settings import DATA_PATH, LATENT_DIM, NUM_SAMPLES, BREAK_CHAR
 FREQ_DIRECTORY = "./word-freq-reports/"
 
 DOC_DIRECTORY = "./text-to-predict/"
-DOC_TO_DECODE = "sampletext.txt"
+RAW_TEXT = "raw-text/"
+PREDICTED_TEXT = "predicted/"
 
 ENGLISH_LEXICON = "./english-words.txt"
 
@@ -18,17 +21,6 @@ ENGLISH_LEXICON = "./english-words.txt"
 english_words = set()
 for line in open(ENGLISH_LEXICON):
     english_words.add(line.strip())
-
-""" Preparing Document """
-doc_text = []
-for line in open(f"{DOC_DIRECTORY}raw-text/{DOC_TO_DECODE}"):
-    line = line.replace("\n", " ")
-    line = line.replace("\t", "")
-    line = line.replace("- ", "")
-    for word in line.split(" "):
-        word = clean_text_v2(word)
-        if len(word) > 0:
-            doc_text.append(word)
 
 """ Preparing Model """
 input_texts = []
@@ -113,48 +105,83 @@ def decode_sequence(input_seq):
     return decoded_sentence
 
 """ Testing """
-num_encoder_tokens = encoder_inputs.shape[2]
 
-translated_doc = []
-for word in doc_text:
-    if word in english_words:
-        translated_doc.append(word)
-    else :
-        print(f'WORD: "{word}"')
-        word_data = np.zeros((len(input_texts), max_encoder_seq_length, num_encoder_tokens), dtype="float32")
-        for t, char in enumerate(word):
-            word_data[0, t, input_token_index[char]] = 1.0
-        word_data[0, t + 1 :, input_token_index[" "]] = 1.0
-        decoded_word = ""
-        input_seq = word_data[0:1]
-        decoded_word += decode_sequence(input_seq)
-        print("DECODED WORD: ", decoded_word)
-        translated_doc.append(decoded_word.strip("\n"))
+for folder in os.listdir(DOC_DIRECTORY + RAW_TEXT):
+    print(f"\nCURRENT FOLDER: {folder}")
+    if folder == ".DS_Store":
+        continue
+    pathlib.Path(DOC_DIRECTORY + PREDICTED_TEXT + folder).mkdir(parents=True, exist_ok=True)
+    pathlib.Path(FREQ_DIRECTORY + folder).mkdir(parents=True, exist_ok=True)
+    for f in os.listdir(DOC_DIRECTORY + RAW_TEXT + folder + "/"):
+        if f == ".DS_Store":
+            continue
+        # This checks if it's already been processed. If you want to re-run, delete the predicted text file
+        if ("P_" + f) in os.listdir(DOC_DIRECTORY + PREDICTED_TEXT + folder + "/"):
+            print(f"File Already Exists: {f}")
+            continue
+        else:
+            doc_text = []
+            textfile = open(f"./{DOC_DIRECTORY + RAW_TEXT + folder}/{f}")
+            try:
+                for line in textfile:
+                    line = line.replace("\n", " ")
+                    line = line.replace("\t", "")
+                    line = line.replace("- ", "")
+                    for word in line.split(" "):
+                        word = clean_text_v2(word)
+                        if len(word) > 0:
+                            doc_text.append(word)
+            except:
+                print(f"Unicode Error: {f}")
+                continue
 
-predicted_doc = open(DOC_DIRECTORY + "predicted/P_" + DOC_TO_DECODE, "w+")
-predicted_doc.write(" ".join(translated_doc))
-predicted_doc.close()
-print("Predicted text written to document.")
+            num_encoder_tokens = encoder_inputs.shape[2]
+
+            translated_doc = []
+            for word in doc_text:
+                if word in english_words:
+                    translated_doc.append(word)
+                else :
+                    try:
+                        #print(f'WORD: "{word}"')
+                        word_data = np.zeros((len(input_texts), max_encoder_seq_length, num_encoder_tokens), dtype="float32")
+                        for t, char in enumerate(word):
+                            word_data[0, t, input_token_index[char]] = 1.0
+                        word_data[0, t + 1 :, input_token_index[" "]] = 1.0
+                        decoded_word = ""
+                        input_seq = word_data[0:1]
+                        decoded_word += decode_sequence(input_seq)
+                        #print("DECODED WORD: ", decoded_word)
+                        translated_doc.append(decoded_word.strip("\n"))
+                    except:
+                        print(f"Bad word in {f}: {word}")
+                        translated_doc.append("...")
 
 
-"""
-PyPlot graphs word frequencies
-"""
-word_counts = {}
-for word in translated_doc:
-    if word not in word_counts:
-        word_counts[word] = 1
-    else:
-        word_counts[word] += 1
+            predicted_doc = open(DOC_DIRECTORY + PREDICTED_TEXT + folder + "/P_" + f, "w+")
+            predicted_doc.write(" ".join(translated_doc))
+            predicted_doc.close()
+            print("File Processed: " + f)
 
-freqs, words = zip(*sorted(zip(word_counts.values(), word_counts.keys()))) 
-freqs = freqs[::-1] # reverses so largest value comes first
-words = words[::-1]
-plot_size = min(len(word_counts), 30) # caps number of words at 30 max
-if len(word_counts) > 30:
-    freqs = freqs[0:30]
-    words = words[0:30]
-plt.bar(range(plot_size), freqs)
-plt.xticks(range(plot_size), words, rotation='vertical')
-plt.subplots_adjust(bottom=0.15)
-plt.savefig(f"{FREQ_DIRECTORY}{DOC_TO_DECODE}_word_freq.png")
+
+            """
+            PyPlot graphs word frequencies
+            """
+            word_counts = {}
+            for word in translated_doc:
+                if word not in word_counts:
+                    word_counts[word] = 1
+                else:
+                    word_counts[word] += 1
+
+            freqs, words = zip(*sorted(zip(word_counts.values(), word_counts.keys()))) 
+            freqs = freqs[::-1] # reverses so largest value comes first
+            words = words[::-1]
+            plot_size = min(len(word_counts), 30) # caps number of words at 30 max
+            if len(word_counts) > 30:
+                freqs = freqs[0:30]
+                words = words[0:30]
+            plt.barh([i for i in range(plot_size)], freqs)
+            plt.yticks(range(plot_size), words, rotation='horizontal')
+            plt.subplots_adjust(left=0.15)
+            plt.savefig(f"{FREQ_DIRECTORY}/{folder}/{f}_word_freq.png")

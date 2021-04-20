@@ -6,6 +6,7 @@ robust english language dictionary.
 """
 import os
 import re
+import string
 
 COHA_DIRECTORY = "./COHA-sample-data/"
 GOOGLE_FILE = "./google-10000-english-no-swears.txt"
@@ -44,14 +45,8 @@ def clean_text_v2(text):
     text.strip("")
     text = re.sub('\n', "", text)
     text = re.sub('\t', "", text)
-    text = re.sub('[{}@_*>()\\#%+=\[\]]','', text)
-    text = re.sub('\.','. ', text)
-    text = re.sub('\!','! ', text)
-    text = re.sub('\?','? ', text)
-    text = re.sub(' +',' ', text)
-    text = re.sub("-.'?;", "", text)
-    text = re.sub('"', '', text)
-    text = re.sub(",", "", text)
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    text = text.translate(str.maketrans('', '', string.digits))
     return text
 
 if __name__ == "__main__":

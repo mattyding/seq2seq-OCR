@@ -3,9 +3,6 @@ File: prepare_data.py
 --------------------
 Given a csv of clean/unclean text, sorts it for model training.
 
-Issues to fix:
-Line 103
-
 """
 import os
 import glob
@@ -21,6 +18,7 @@ from settings import TEXT_DIRECTORY, COMB_DIRECTORY
 CSV_DIRECTORY = "./csv-files/" # location of the csv files
 
 ENGLISH_LEXICON = "./english-words.txt"
+COMMON_ENG_LEXICON = "./google-10000-english-no-swears.txt"
 
 """
 Plain text filenames are stored in the following format:
@@ -46,9 +44,13 @@ def main():
 
     # prepares all_text
     all_text.write(" \t \n")
-    chars = [c for c in string.ascii_letters] + [c for c in string.digits] + [c for c in string.punctuation]
-    
-    all_text.write("".join(chars) + "\t" + "".join(chars) + "\n")
+
+    common_eng_words = open(COMMON_ENG_LEXICON)
+    for i in range(3):
+        for line in common_eng_words:
+            line = line.strip()
+            all_text.write(str(line) + "\t" + str(line) + "\n")
+
     all_eng_words = open(ENGLISH_LEXICON)
     for line in all_eng_words:
         line = line.strip()
@@ -103,8 +105,6 @@ def main():
 
             for i in range(len(unsorted_text)):
                 if (textdistance.levenshtein.normalized_similarity(unsorted_text[i], sorted_text[i]) > 0.7):
-                    if unsorted_text[i] !- "J":
-                        #note: fix this issue later !!
                         all_text.write(unsorted_text[i] + "\t" + sorted_text[i] + "\n")
 
         print("Created File: " + f)

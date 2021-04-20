@@ -10,7 +10,7 @@ Training Settings
 BATCH_SIZE = 64  # batch size for training.
 EPOCHS = 100  # number of epochs to train for.
 LATENT_DIM = 256  # latent dimensionality of the encoding space.
-NUM_SAMPLES = 50000  # number of samples to train on.
+NUM_SAMPLES = 20000  # number of samples to train on.
 DATA_PATH = "./text-from-csv/ALL_TEXT.txt" # path to data text file; "./" indicates current folder area
 
 BREAK_CHAR = "\t" # seperator character in data

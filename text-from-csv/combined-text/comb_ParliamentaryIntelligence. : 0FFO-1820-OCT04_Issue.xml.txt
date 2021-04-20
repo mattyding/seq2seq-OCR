@@ -1,8 +1,6 @@
-This	This
 day	day
 tbe	tbe
 house	house
-The	The
 peers	peers
 began	began
 to	to
@@ -24,8 +22,6 @@ would	would
 be	be
 the	the
 the	the
-of	of
-their	their
 the	the
 at	at
 the	the
@@ -37,7 +33,6 @@ the	the
 the	the
 of	of
 the	the
-It	It
 was	was
 that	that
 was	was

@@ -129,6 +129,6 @@ plt.title('Accuracy')
 plt.xlabel('epochs')
 plt.ylabel('accuracy')
 plt.legend()
-plt.savefig("accuracy.jpg")
+plt.savefig("accuracy-training.png")
 
 print('"\nModel saved to "s2s" folder. Accuracy graph created and saved.\n"')
