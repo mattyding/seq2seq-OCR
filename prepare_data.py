@@ -1,8 +1,9 @@
 """
 File: prepare_data.py
 --------------------
-Given a csv of clean/unclean text, sorts it for model training.
+PREVIOUSLY USED BUT NO LONGER USED
 
+SEE prepare_data.py FOR THE CURRENT PROGRAM USED TO GENERATE TRAINING DATA
 """
 import os
 import glob

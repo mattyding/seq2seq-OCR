@@ -1,3 +1,6 @@
+This project uses a LSTM Seq2Seq model to correct for errors in Optical Character Recognition.
+
+
 seq2seq model inspired from Keras's sample program: https://git.io/JOwXq
 
 Training data of historical English text taken from the following sources:  

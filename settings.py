@@ -20,3 +20,12 @@ Directory Settings
 """
 TEXT_DIRECTORY = "./text-from-csv/" # folder where all the text files are to be stored
 COMB_DIRECTORY = "./text-from-csv/combined-text/" #place to store combined data for training
+
+DOC_DIRECTORY = "./text-to-predict/"  # directory containing raw and predicted text folders
+PREDICTED_TEXT = "predicted/"
+RAW_TEXT = "raw-text/"  # *** PUT TEXT FILES TO BE PREDICTED IN A FOLDER IN THIS DIRECTORY ***
+
+FREQ_DIRECTORY = "./word-freq-reports/"
+ACCUR_DIRECTORY = "./accuracy-reports/"
+
+ENGLISH_LEXICON = "./english-words.txt"

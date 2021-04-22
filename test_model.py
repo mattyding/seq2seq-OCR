@@ -1,3 +1,11 @@
+"""
+test_model.py
+-------------
+This program evaluates the trained model and uses it to predict text.
+
+To use, put a folder of text files in the directory specified by DOC_DIRECTORY/RAW_TEXT
+see settings.py for more details and to change the location where the program tests.
+"""
 import os
 import pathlib
 import numpy as np
@@ -7,14 +15,7 @@ from tensorflow import keras
 from nltk.tokenize import word_tokenize
 from process_coha import clean_text_v2
 from settings import DATA_PATH, LATENT_DIM, NUM_SAMPLES, BREAK_CHAR
-
-FREQ_DIRECTORY = "./word-freq-reports/"
-
-DOC_DIRECTORY = "./text-to-predict/"
-RAW_TEXT = "raw-text/"
-PREDICTED_TEXT = "predicted/"
-
-ENGLISH_LEXICON = "./english-words.txt"
+from settings import FREQ_DIRECTORY, DOC_DIRECTORY, PREDICTED_TEXT, RAW_TEXT, ENGLISH_LEXICON
 
 
 """ Preparing English Hashset """

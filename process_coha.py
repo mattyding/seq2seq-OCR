@@ -7,10 +7,10 @@ robust english language dictionary.
 import os
 import re
 import string
+from settings import ENGLISH_LEXICON
 
 COHA_DIRECTORY = "./COHA-sample-data/"
 GOOGLE_FILE = "./google-10000-english-no-swears.txt"
-NEW_TEXT_FILE = "./english-words.txt"
 
 def main():
     word_set = set()
@@ -29,7 +29,7 @@ def main():
         word_set.add(clean_text_v2(line))
     print("Google Data Processed.")
 
-    new_doc = open(NEW_TEXT_FILE, "w+")
+    new_doc = open(ENGLISH_LEXICON, "w+")
     count = 0
     for word in word_set:
         # space is added to make it easier to find specific words in the file

@@ -3,12 +3,10 @@ import textdistance
 import string
 import numpy as np
 import matplotlib.pyplot as plt
+from settings import DOC_DIRECTORY, PREDICTED_TEXT, RAW_TEXT, ENGLISH_LEXICON, ACCUR_DIRECTORY
 
-ENGLISH_LEXICON = "./english-words.txt"
-PREDICTED_TEXT_DIR = "./text-to-predict/predicted/"
-RAW_TEXT_DIR = "./text-to-predict/raw-text/"
-
-#FOLDER_NAME = "0FFO-1820-OCT04_Issue.xml" # CALCULATES THE ACCURACY OF ALL FILES IN THIS FOLDER
+PREDICTED_TEXT_DIR = DOC_DIRECTORY + PREDICTED_TEXT
+RAW_TEXT_DIR = DOC_DIRECTORY + RAW_TEXT
 
 def main():
     english_words = set()
@@ -77,7 +75,7 @@ def main():
        #loc='lower right',
        ncol=1,
        fontsize=8)._legend_box.sep = 10
-    plt.savefig("accuracy-testing-size.png", bbox_inches='tight')
+    plt.savefig(f"{ACCUR_DIRECTORY}accuracy-testing-size.png", bbox_inches='tight')
     """
     plt.scatter(orig_percent, pred_percent)
     plt.plot([-1, 2], [-1, 2], color="#000000", linestyle="dashed", linewidth="0.5")
@@ -87,9 +85,8 @@ def main():
     plt.xlim(0, 1), plt.ylim(0, 1)
     plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1])
     plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    plt.savefig("accuracy-testing-normal.png", bbox_inches='tight')
+    plt.savefig(f"{ACCUR_DIRECTORY}accuracy-testing-normal.png", bbox_inches='tight')
     """
-
             
         
     
