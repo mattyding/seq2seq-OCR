@@ -28,7 +28,12 @@ BREAK_CHAR = "\t" # seperator character in data
 Directory Navigation
 """
 # SOURCE DATA FOR TRAINING MODEL V2
-LETTER_SUB_DIRECTORY = dirname + "/./training-sets/ocr-letter-conversions.txt"
+
+# FORCED OCR ERRORS
+LABELED_OCR_ERRORS = dirname + "/../source-data/corrected-ocr-errors.txt"
+LETTER_SUBSTITUTIONS = dirname + "/../source-data/ocr-letter-conversions.txt"
+LETTER_SUB_DICT = dirname + "/./training-sets/ocr_letter_sub.pkl"  # stores each letter's substitutions
+ERROR_PROB_DICT = dirname + "./training-sets/ocr_error_prob.pkl"  # the probability of OCR error for each letter
 
 # ENGLISH LEXICON
 ENGLISH_LEXICON = dirname + "/./training-sets/english-words.txt"

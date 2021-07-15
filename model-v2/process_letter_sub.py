@@ -6,15 +6,19 @@ This file contains several functions that prepare a dictionary of common OCR let
 The original source data is stored at LABELED_OCR_ERRORS; the source is given in the README.
 """
 import numpy as np
+import os
 import string
 import pickle
-from settings_v2 import LABELED_OCR_ERRORS, LETTER_SUBSTITUTIONS, LETTER_SUB_DICT
+from settings_v2 import LABELED_OCR_ERRORS, LETTER_SUBSTITUTIONS, LETTER_SUB_DICT, ERROR_PROB_DICT
+from settings_v2 import COHA_DIRECTORY
+from process_coha import clean_text_v2
 
 def main():
-    store_sub_dict()
-    print("RETRIEVAL")
-    print_sub_dict(get_char_probability_dict())
-    print_sub_dict(get_sub_probability_dict())
+    with open(ERROR_PROB_DICT, 'rb') as f:
+        d = pickle.load(f)
+    
+    for letter in d:
+        print(letter, d[letter])
 
 def store_sub_dict():
     """
@@ -75,7 +79,16 @@ def store_ocr_error_dict():
     probability that any specific letter encounters an OCR errors. Plots a chart of each letter and
     its associated probability. Saves the dictionary of letters and their probabilities as a binary file.
     """
-    pass
+    char_error_prob_dict = get_char_error_probability_dict()
+    char_prob_dict = get_char_probability_dict()
+
+    ocr_error_dict = {}
+
+    for letter in string.ascii_lowercase:
+        ocr_error_dict[letter] = (char_error_prob_dict[letter] / char_prob_dict[letter])
+    
+    with open(ERROR_PROB_DICT, "wb") as dict_file:
+        pickle.dump(ocr_error_dict, dict_file, pickle.HIGHEST_PROTOCOL)
 
 
 def get_char_error_probability_dict():
@@ -90,37 +103,28 @@ def get_char_error_probability_dict():
         total_count[letter] =  len(sub_dict[letter])
     
     total_subs = sum(total_count.values(), 0.0)
-    return {letter: (freq / total_subs) for letter, freq in total_count.items()}
+    return {letter : (freq / total_subs) for letter, freq in total_count.items()}
 
 
 def get_char_probability_dict():
     """
     Counts up the frequency of letters stored in the sample COHA directory. 
     """
+    char_prob_dict = {}
+    for letter in string.ascii_lowercase:
+        char_prob_dict[letter] = 0
+
+    for f in os.listdir(COHA_DIRECTORY):
+        textfile = open(f"{COHA_DIRECTORY}{f}")
+        for line in textfile:
+            word = clean_text_v2(line.split("\t")[1])
+            for letter in word:
+                if letter in char_prob_dict:
+                    char_prob_dict[letter] += 1
     
-def get_sub_prob_dict():
-    """
-    Takes the stored OCR substituion dict and returns a new dictionary where each possible substitution
-    for a character is mapped to its proportion of the substitions for that character (the probability
-    that a randomly-chosen substitution for that character will be that one).
-    """
-    sub_dict = retrieve_sub_dict()
-
-    new_prob_dict = {}
-
-    for letter in sub_dict:
-        sub_freq_dict = {}
-        for poss_sub in sub_dict[letter]:
-            if poss_sub not in sub_freq_dict:
-                sub_freq_dict[poss_sub] = 1
-            else:
-                sub_freq_dict[poss_sub] += 1
-
-        total_subs = sum(sub_freq_dict.values(), 0.0)
-        new_prob_dict[letter] = {sub: (freq / total_subs) for sub, freq in sub_freq_dict.items()}
+    total_num = sum(char_prob_dict.values(), 0.0)
+    return {letter : (freq / total_num) for letter, freq in char_prob_dict.items()}
     
-    return new_prob_dict
-
 
 def print_sub_dict(sub_dict):
     """

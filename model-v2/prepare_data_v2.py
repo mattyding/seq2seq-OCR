@@ -8,13 +8,16 @@ Stems training data.
 import os
 import numpy as np
 import string
+import pickle
 from nltk.stem import PorterStemmer
 from process_coha import clean_text_v2
-from settings_v2 import ENGLISH_LEXICON, COMMON_ENG_LEXICON, COHA_DIRECTORY, LETTER_SUB_DIRECTORY
+from settings_v2 import ENGLISH_LEXICON, COMMON_ENG_LEXICON, COHA_DIRECTORY
 from settings_v2 import DATA_PATH
+from process_letter_sub import *
 
 
 OBSERVERED_ERROR_FREQ = 0.85  # proportion of letters that are erroneous
+OBSERVERED_REPLACE_FREQ = 0.8 # propoprtion of letter errors that are replacement instead of ommission
 
 
 def main():
@@ -26,18 +29,7 @@ def write_training_data(replace=True):
     # prepares all_text
     all_text.write(" \t \n")
 
-    """ prepares noisy OCR patterns """
-    d = {}
-    letterfile = open(LETTER_SUB_DIRECTORY)
-    for line in letterfile:
-        line = line.strip("\n")
-        line = line.split("\t")
-        orig_letter = line[0]
-        bad_letter = line[1]
-        if orig_letter not in d:
-            d[orig_letter] = np.full(1, bad_letter)
-        else:
-            d[orig_letter] = np.append(d[orig_letter], bad_letter)
+    sub_dict = retrieve_sub_dict()
 
     ps = PorterStemmer()
     words = []
@@ -53,7 +45,7 @@ def write_training_data(replace=True):
 
     for word in words:
         # every 3/20 characters is noisy
-        all_text.write(noise_maker(word, OBSERVERED_ERROR_FREQ, d) + "\t" + word + "\n")
+        all_text.write(noise_maker(word, OBSERVERED_ERROR_FREQ, sub_dict) + "\t" + word + "\n")
 
     all_text.close()
 
@@ -67,18 +59,20 @@ def noise_maker(word, threshold, letterdict):
         if random < threshold:
             noisy_word.append(word[i])  # adds the letter normally
         else:
+
             new_random = np.random.uniform(0,1,1)
-            if new_random < 0.85: #substitutes in letter using OCR error dict
+            if new_random < OBSERVERED_REPLACE_FREQ:
+                # substitutes in letter using OCR error dict
                 if word[i] in letterdict:
-                    noisy_word.append(str(np.random.choice(letterdict[sentence[i]])))
+                    noisy_word.append(str(np.random.choice(letterdict[word[i]])))
                 else:
                     noisy_word.append(np.random.choice([c for c in string.ascii_lowercase]))
-            else: # does not type letter
+            else:
+                # does not type letter
                 pass     
         i += 1
     noisy_word = "".join(noisy_word)
     return noisy_word if len(noisy_word) > 0 else word # in case short word + deletes letter
-
 
 if __name__ == "__main__":
     main()
