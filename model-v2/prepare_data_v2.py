@@ -8,7 +8,6 @@ Stems training data.
 import os
 import numpy as np
 import string
-import pickle
 from nltk.stem import PorterStemmer
 from process_coha import clean_text_v2
 from settings_v2 import ENGLISH_LEXICON, COMMON_ENG_LEXICON, COHA_DIRECTORY
@@ -16,12 +15,9 @@ from settings_v2 import DATA_PATH
 from process_letter_sub import *
 
 
-OBSERVERED_ERROR_FREQ = 0.85  # proportion of letters that are erroneous
-OBSERVERED_REPLACE_FREQ = 0.8 # propoprtion of letter errors that are replacement instead of ommission
-
-
 def main():
-    write_training_data(False)
+    write_training_data()
+
 
 def write_training_data(replace=True):
     all_text = open(DATA_PATH, "w+" if (replace == True) else "a")
@@ -29,9 +25,6 @@ def write_training_data(replace=True):
     # prepares all_text
     all_text.write(" \t \n")
 
-    sub_dict = retrieve_sub_dict()
-
-    ps = PorterStemmer()
     words = []
     for f in os.listdir(COHA_DIRECTORY):
         textfile = open(f"{COHA_DIRECTORY}{f}")
@@ -39,40 +32,56 @@ def write_training_data(replace=True):
         for line in textfile:
             word = clean_text_v2(line.split("\t")[1])
             if word.isalpha():
-                words.append(ps.stem(word))
-        print(f"{f} file processed.")
-    print("COHA Files Processed")
+                words.append(word)
+    print("COHA Files Processed.")
+    print(f"Total Number of Words: {len(words)}")
+
+    # these retrieval functions are stored in "process_letter_sub.py" and unpickle stored data
+    prob_sub_dict = retrieve_prob_sub_dict()
+    error_prob_dict = retrieve_ocr_error_dict()
 
     for word in words:
         # every 3/20 characters is noisy
-        all_text.write(noise_maker(word, OBSERVERED_ERROR_FREQ, sub_dict) + "\t" + word + "\n")
-
+        all_text.write(simulate_ocr_noise(word, prob_sub_dict, error_prob_dict) + "\t" + word + "\n")
+    
+    print("Training data written.")
     all_text.close()
 
 
-def noise_maker(word, threshold, letterdict):
-    letters = [c for c in string.ascii_lowercase]
-    noisy_word= []
-    i = 0
-    while i < len(word):
-        random = np.random.uniform(0,1,1)
-        if random < threshold:
-            noisy_word.append(word[i])  # adds the letter normally
+def simulate_ocr_noise(word, prob_sub_dict, error_prob_dict):
+    """
+    This function simulates OCR errors per the calculated error probabilities.
+    """
+    noisy_word = []
+    
+    for i in range(len(word)):
+        currLetter = word[i]
+        probError = error_prob_dict[currLetter]
+        random = np.random.uniform(0, 1, 1)
+        if (random < probError):
+            noisy_word.append(get_random_letter_substitution(currLetter, prob_sub_dict))
+            
         else:
-
-            new_random = np.random.uniform(0,1,1)
-            if new_random < OBSERVERED_REPLACE_FREQ:
-                # substitutes in letter using OCR error dict
-                if word[i] in letterdict:
-                    noisy_word.append(str(np.random.choice(letterdict[word[i]])))
-                else:
-                    noisy_word.append(np.random.choice([c for c in string.ascii_lowercase]))
-            else:
-                # does not type letter
-                pass     
-        i += 1
+            noisy_word.append(currLetter)
+        
     noisy_word = "".join(noisy_word)
     return noisy_word if len(noisy_word) > 0 else word # in case short word + deletes letter
+
+
+def get_random_letter_substitution(letter, sub_dict):
+    """
+    For any letter, takes the stored OCR substitution dict and pulls a random substitution from
+    the dict of possible ones. Each substitution instance is equally likely, so the probability
+    that a specific substitution occurs is equal to the frequency of that substitution in the
+    source data. Therefore, more common substitutions are more likely to be returned.
+    """
+    assert(letter in string.ascii_lowercase)
+
+    poss_subs = list(sub_dict[letter].keys())
+    probs = list(sub_dict[letter].values())
+
+    return np.random.choice(poss_subs, 1, replace=True, p=probs)[0]
+
 
 if __name__ == "__main__":
     main()

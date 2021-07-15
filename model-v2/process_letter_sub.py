@@ -10,21 +10,42 @@ import matplotlib.pylab as plt
 import os
 import string
 import pickle
-from settings_v2 import LABELED_OCR_ERRORS, LETTER_SUBSTITUTIONS, LETTER_SUB_DICT, ERROR_PROB_DICT, LETTER_PROB_FIG
+from settings_v2 import LABELED_OCR_ERRORS, LETTER_SUBSTITUTIONS, LETTER_PROB_FIG
+from settings_v2 import NUM_LETTER_SUB_DICT, PROB_LETTER_SUB_DICT, ERROR_PROB_DICT
 from process_coha import clean_text_v2
 
+
 def rerun_data_processing():
+    """
+    Reruns all scripts. Takes the original source data, processes it, re-calculates probabilities,
+    and re-saves all models.
+    """
     print("Re-evaluating functions on source data.")
     process_corrected_data()
-    store_sub_dict()
+    store_num_sub_dict()
+    store_prob_sub_dict()
     store_ocr_error_dict()
     graph_error_prob()
     print(f"Program finished. Graph of error probabilities written to: \n{LETTER_PROB_FIG}\n")
 
 
-def store_sub_dict():
+def print_all_dictionaries():
     """
-    Converts a dict of letter/recorded OCR substitutions into pickle format.
+    Prints all stored substitution/prediction dictionaries.
+    """
+    print("SUB DICTIONARY (COUNTS): ")
+    print_saved_dict(retrieve_num_sub_dict())
+    print("SUB DICTIONARY (PROBABILITIES): ")
+    print_saved_dict(retrieve_prob_sub_dict())
+    print("OCR ERROR DICTIONARY: ")
+    print_saved_dict(retrieve_ocr_error_dict())
+
+
+def store_num_sub_dict():
+    """
+    Converts a dict of letter/recorded OCR substitutions into pickle format. The value of each 
+    letter is a dict storing possible substitutions and the number of times they were counted in
+    the original dataset.
     """    
     d = {}
     letterfile = open(LETTER_SUBSTITUTIONS)
@@ -34,6 +55,7 @@ def store_sub_dict():
         line = line.split("\t")
         orig_letter = line[0]
         bad_letter = line[1]
+        multiplier = int(line[2])  # number of times this substitution occurred
 
         # if correct, continues onto the next pair of letters
         if (orig_letter == bad_letter):
@@ -41,20 +63,48 @@ def store_sub_dict():
 
         # else, appends it to the dict of possible substitutions
         if orig_letter not in d:
-            d[orig_letter] = [bad_letter]
+            d[orig_letter] = {bad_letter : multiplier}
         else:
-            d[orig_letter].append(bad_letter)
+            if bad_letter in d[orig_letter]:
+                d[orig_letter][bad_letter] += multiplier
+            else:
+                d[orig_letter][bad_letter] = multiplier
     
-    with open(LETTER_SUB_DICT, "wb") as dict_file:
+    with open(NUM_LETTER_SUB_DICT, "wb") as dict_file:
         pickle.dump(d, dict_file, pickle.HIGHEST_PROTOCOL)
 
 
-def retrieve_sub_dict():
+def retrieve_num_sub_dict():
     """
     Retrieves the stored OCR substitution dict.
     """
-    with open(LETTER_SUB_DICT, 'rb') as f:
+    with open(NUM_LETTER_SUB_DICT, 'rb') as f:
         return pickle.load(f)
+
+
+def store_prob_sub_dict():
+    """
+    Takes the raw count of letter substitutions and converts each one into a probability. The new stored
+    value reflects the probability that a random substitution will be that specific character.
+    """
+    num_sub_dict = retrieve_num_sub_dict()
+    prob_sub_dict = {}
+
+    for letter in num_sub_dict:
+        total_poss = sum(num_sub_dict[letter].values())
+        prob_sub_dict[letter] = {k : (v / total_poss) for k, v in num_sub_dict[letter].items()}
+    
+    with open(PROB_LETTER_SUB_DICT, "wb") as dict_file:
+        pickle.dump(prob_sub_dict, dict_file, pickle.HIGHEST_PROTOCOL)
+
+
+def retrieve_prob_sub_dict():
+    """
+    Retrieves the stored OCR substitution probability dict.
+    """
+    with open(PROB_LETTER_SUB_DICT, 'rb') as f:
+        return pickle.load(f)
+
 
 def store_ocr_error_dict():
     """
@@ -82,20 +132,21 @@ def retrieve_ocr_error_dict():
 def get_char_error_probability_dict():
     """
     Takes the stored OCR substitution dict and returns a new dictionary where each char is 
-    mapped to the proportion of errors that they made up. Saves dictionary to binary file.
+    mapped to the number of OCR errors it has recorded.
     """
-    sub_dict = retrieve_sub_dict()
+    num_sub_dict = retrieve_num_sub_dict()
 
     total_count = {}
-    for letter in sub_dict:
-        total_count[letter] =  len(sub_dict[letter])
+    for letter in num_sub_dict:
+        total_count[letter] =  sum(num_sub_dict[letter].values())
 
     return total_count
 
 
 def get_char_probability_dict():
     """
-    Counts up the frequency of letters stored in the sample COHA directory. 
+    Takes the labeled OCR data and counts the number of times each character was present
+    in the corrected word. Returns a dict mapping each character to its count.
     """
     char_prob_dict = {}
     for letter in string.ascii_lowercase:
@@ -105,10 +156,11 @@ def get_char_probability_dict():
 
     for line in sourcefile:
         word = line.split("\t")[1]  # corrected word
+        multiplier = int(line.split("\t")[2]) # number of times word appears
         for char in word:
             if char not in string.ascii_lowercase:
                 continue
-            char_prob_dict[char] += 1
+            char_prob_dict[char] += multiplier
     
     return char_prob_dict
 
@@ -134,7 +186,7 @@ def graph_error_prob():
     edgecolor=fig.get_edgecolor())
 
 
-def print_sub_dict(d):
+def print_saved_dict(d):
     """
     Convenience function to check the contents of any version of the OCR substitution/probability dictionary.
     """
@@ -177,11 +229,14 @@ def process_corrected_data():
                 pass
 
         for i in range(len(bad_part)):
+            # discards pair if the correct character is not a letter
             if correct_part[i] not in string.ascii_lowercase:
                 continue
+            # in pre-processing the text we want to infer, we remove non-alphabetical 
+            # characters. So if misread char is non-alphabetic, we replace it with an empty string
             bad_char = "" if bad_part[i] not in string.ascii_lowercase else bad_part[i]
-
-            newfile.write(f"{correct_part[i]}\t{bad_char}\n")
+            
+            newfile.write(f"{correct_part[i]}\t{bad_char}\t{line[2]}")
 
     sourcefile.close()
     newfile.close()

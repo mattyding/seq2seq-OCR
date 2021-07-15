@@ -41,11 +41,14 @@ def main():
 def clean_text_v2(text):
     text = text.lower()
     text.strip("")
-    text = re.sub('\n', "", text)
-    text = re.sub('\t', "", text)
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    text = text.translate(str.maketrans('', '', string.digits))
-    return text
+
+    new_text = ""
+    for char in text:
+        if char not in string.ascii_lowercase:
+            continue
+        new_text += char
+    
+    return new_text
 
 if __name__ == "__main__":
     main()

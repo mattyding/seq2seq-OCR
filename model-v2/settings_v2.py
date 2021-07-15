@@ -32,9 +32,12 @@ Directory Navigation
 # FORCED OCR ERRORS
 LABELED_OCR_ERRORS = dirname + "/../source-data/corrected-ocr-errors.txt"
 LETTER_SUBSTITUTIONS = dirname + "/../source-data/ocr-letter-conversions.txt"
-LETTER_SUB_DICT = dirname + "/./training-sets/ocr_letter_sub.pkl"  # stores each letter's substitutions
+
+NUM_LETTER_SUB_DICT = dirname + "/./training-sets/letter_sub_num.pkl"  # count of each letter substitution
+PROB_LETTER_SUB_DICT = dirname + "/./training-sets/letter_sub_prob.pkl" # probability of each letter sub
 ERROR_PROB_DICT = dirname + "./training-sets/ocr_error_prob.pkl"  # the probability of OCR error for each letter
-LETTER_PROB_FIG = dirname + "../testing-and-evaluation/figures/ocr_error_probability.png"
+
+LETTER_PROB_FIG = dirname + "../testing-and-evaluation/figures/ocr_error_probability.png" # stores prob graph
 
 # ENGLISH LEXICON
 ENGLISH_LEXICON = dirname + "/./training-sets/english-words.txt"
