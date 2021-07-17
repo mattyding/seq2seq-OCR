@@ -11,7 +11,7 @@ import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
 from settings_v2 import BATCH_SIZE, EPOCHS, LATENT_DIM, NUM_SAMPLES, DATA_PATH, BREAK_CHAR
-from settings_v2 import ACCUR_DIRECTORY
+from settings_v2 import SAVED_MODEL, ACCUR_DIRECTORY
 
 """
 Data Preparation
@@ -121,7 +121,7 @@ history = model.fit(
 )
 # save trained model weights
 model.save("s2s-v2")
-model.save_weights("./s2s-v2/")
+model.save_weights(SAVED_MODEL)
 
 """
 PyPlot graphs training accuracies

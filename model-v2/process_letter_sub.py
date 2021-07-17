@@ -70,8 +70,9 @@ def store_num_sub_dict():
             else:
                 d[orig_letter][bad_letter] = multiplier
     
-    with open(NUM_LETTER_SUB_DICT, "wb") as dict_file:
-        pickle.dump(d, dict_file, pickle.HIGHEST_PROTOCOL)
+    with open(NUM_LETTER_SUB_DICT, "wb") as f:
+        pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
+    f.close()
 
 
 def retrieve_num_sub_dict():
@@ -94,8 +95,9 @@ def store_prob_sub_dict():
         total_poss = sum(num_sub_dict[letter].values())
         prob_sub_dict[letter] = {k : (v / total_poss) for k, v in num_sub_dict[letter].items()}
     
-    with open(PROB_LETTER_SUB_DICT, "wb") as dict_file:
-        pickle.dump(prob_sub_dict, dict_file, pickle.HIGHEST_PROTOCOL)
+    with open(PROB_LETTER_SUB_DICT, "wb") as f:
+        pickle.dump(prob_sub_dict, f, pickle.HIGHEST_PROTOCOL)
+    f.close()
 
 
 def retrieve_prob_sub_dict():

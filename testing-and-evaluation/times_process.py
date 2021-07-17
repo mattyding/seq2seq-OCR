@@ -8,12 +8,13 @@ import glob
 import numpy as np
 import pandas as pd
 import openpyxl
+import string
 import pathlib
-from process_coha import clean_text_v2
 
+dirname = __file__[:-len("times_process.py")]
 
-TEXT_DIRECTORY = "./text-to-predict/raw-text/"
-TIMES_DIRECTORY = "./times-random-sample/"
+TEXT_DIRECTORY = dirname + "/./text-to-predict/"
+TIMES_DIRECTORY = dirname + "/../aaaa-TEMP-TRASH/times-random-sample/"
 
 def main():
     for xl_file in glob.glob(os.path.join(TIMES_DIRECTORY, '*.xlsx')):
@@ -24,14 +25,26 @@ def main():
 
 def sort_data(row: pd.Series) -> None:
     if row["category"] == "News":
-        filename = clean_text_v2("".join(row["title"].split()[0:3])) + ".txt"
+        filename = clean_text_v1_5("".join(row["title"].split()[0:3])) + ".txt"
         text_file = open(TEXT_DIRECTORY + row["file_name"] + "/" + filename, "w+")
 
-        text_file.write(clean_text_v2(str(row["text"])))
+        text_file.write(clean_text_v1_5(str(row["text"])))
 
         text_file.close()
         print("Created File: " + filename)
 
+
+def clean_text_v1_5(text):
+    text = text.lower()
+    text.strip("")
+
+    new_text = ""
+    for char in text:
+        if char not in string.ascii_lowercase + " ":
+            continue
+        new_text += char
+    
+    return new_text
 
 if __name__ == "__main__":
     main()
