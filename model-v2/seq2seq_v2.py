@@ -11,7 +11,7 @@ import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
 from settings_v2 import BATCH_SIZE, EPOCHS, LATENT_DIM, NUM_SAMPLES, DATA_PATH, BREAK_CHAR
-from settings_v2 import SAVED_MODEL, ACCUR_DIRECTORY
+from settings_v2 import SAVED_MODEL, FIGURE_DIRECTORY
 
 """
 Data Preparation
@@ -132,6 +132,6 @@ plt.title('Accuracy')
 plt.xlabel('epochs')
 plt.ylabel('accuracy')
 plt.legend()
-plt.savefig(f"{ACCUR_DIRECTORY}accuracy-training.png")
+plt.savefig(f"{FIGURE_DIRECTORY}accuracy-training.png")
 
 print('"\nModel saved to "s2s" folder. Accuracy graph created and saved.\n"')

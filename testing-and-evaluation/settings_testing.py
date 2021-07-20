@@ -1,35 +1,39 @@
 """
-settings.py
+settings_vtesting.py
 -----------
-This file contains the settings for training the model.
-"""
-
-# adjusting directories so that scripts can run when CWD is seq2seqOCR. 
-dirname = __file__[:-len("settings_v2.py")]
+This file contains the settings for evaluating versions of the trained model
 
 """
-Training Settings
+# adjusting directories so that scripts can run, regardless of CWD
+dirname = __file__[:-len("settings_testing.py")]
+
+
+"""
+Model Training Settings
 """
 BATCH_SIZE = 64  # batch size for training.
 EPOCHS = 100  # number of epochs to train for.
 LATENT_DIM = 256  # latent dimensionality of the encoding space.
-NUM_SAMPLES = 100000  # number of samples to train on.
-DATA_PATH = dirname + "/./data/training-sets/ALL_TEXT.txt" # path to data text file; "./" indicates current folder area
-
+NUM_SAMPLES = 500000  # number of samples to train on.
 BREAK_CHAR = "\t" # seperator character in data
 
+DATA_PATH = dirname + "/./training-sets/ALL_TEXT.txt" # path to data text file; "./" indicates current folder area
+SAVED_MODEL = dirname + "/./s2s-v2/"
+
 """
-Directory Settings
+Directory Navigation
 """
-DOC_DIRECTORY = dirname + "/../testing_and_evaluation/text-to-predict/"  # directory containing text to predict
+# INFERENCE RESULTS
+DOC_DIRECTORY = dirname + "/./text-to-predict/"  # text to predict
+PREDICTED_DIRECTORY = dirname + "/./predicted-text/"  # contains model results
+FIGURE_DIRECTORY = dirname + "/./figures/"  # contains figures
 
-V1_PREDICTED_DIRECTORY = dirname + "/../testing_and_evaluation/predicted-text/model_v1/"
-V2_PREDICTED_DIRECTORY = dirname + "/../testing_and_evaluation/predicted-text/model_v2/"
+# ENGLISH LEXICONS
+COHA_DIRECTORY = dirname + "/../source-data/COHA-sample-data/"  # COHA samples
+ENGLISH_LEXICON = dirname + "/../source-data/english-hashset.txt"  # words gathered from COHA, no repeats
+ENGLISH_LEXICON_PICKLED = dirname + "/../source-data/english-hashset.pkl"
+COMMON_ENG_LEXICON = dirname + "/../source-data/google-10000-english.txt"  # Google's 10,000 common English words
+COMMON_ENG_LEXICON_PICKLED = dirname + "../source-data/google-common-english.pkl"
 
-FREQ_DIRECTORY = dirname + "/../testing_and_evaluation/word-freq-reports/"
-ACCUR_DIRECTORY = dirname + "/../testing_and_evaluation/accuracy-reports/model_v2/"
-
-ENGLISH_LEXICON = dirname + "/./data/english-words.txt"  # lexicon of English words, complied from COHA/Google data
-COMMON_ENG_LEXICON = dirname + "/./data/source-data/google-10000-english-no-swears.txt"
-COHA_DIRECTORY = dirname + "/./data/source-data/COHA-sample-data/"
-LETTER_SUB_DIRECTORY = dirname + "/./data/source-data/letter-conversions.txt"
+# TESTING RESULTS
+RECOG_EVAL_DIRECTORY = dirname + "/./recognition-eval/"

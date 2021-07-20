@@ -49,6 +49,6 @@ COMMON_ENG_LEXICON = dirname + "/../source-data/google-10000-english.txt"  # Goo
 COMMON_ENG_LEXICON_PICKLED = dirname + "../source-data/google-common-english.pkl"
 
 # GRAPHS AND REPORTS
+FIGURE_DIRECTORY = dirname + "/../testing-and-evaluation/figures/"  # directory to store figures
 FREQ_DIRECTORY = dirname + "/../testing-and-evaluation/word-freq-reports/"  # word frequency plots
-ACCUR_DIRECTORY = dirname + "/../testing-and-evaluation/accuracy-reports/model_v2/"  # training accuracy reports
 

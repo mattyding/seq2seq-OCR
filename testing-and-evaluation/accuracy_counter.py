@@ -1,103 +1,84 @@
 """
 accuracy-counter.py
 -------------------
-This program evaluates the accuracy of the trained model by comparing pre/post-training text to see how much of the pre and post trained text comprises recognizable English words.
+This program evaluates the accuracy of the trained model by comparing pre/post-training text 
+to see how much of the pre and post trained text comprises recognizable English words.
 """
-
-
 import os
-import textdistance
-import string
-import numpy as np
-import matplotlib.pyplot as plt
-from settings import DOC_DIRECTORY, PREDICTED_TEXT, RAW_TEXT, ENGLISH_LEXICON, ACCUR_DIRECTORY
+import pickle
+from settings_testing import DOC_DIRECTORY, PREDICTED_DIRECTORY, RECOG_EVAL_DIRECTORY
+from settings_testing import ENGLISH_LEXICON_PICKLED
 
-PREDICTED_TEXT_DIR = DOC_DIRECTORY + PREDICTED_TEXT
-RAW_TEXT_DIR = DOC_DIRECTORY + RAW_TEXT
 
 def main():
-    english_words = set()
-    for line in open(ENGLISH_LEXICON):
-        english_words.add(line.strip())
+    """
+    Compares each model's output to the original text and percentage of each file that can
+    be recognized as English words (i.e., the percentage of words that are in ENGLISH_LEXICON_PICKLED).
     
-    orig_percent = np.array([])
-    pred_percent = np.array([])
-    file_size = np.array([])
+    Saves a dict to file with the following items:
+        d = {
+            "TOTAL" : total_files,  # int: total number of files
+            "ORIG" : orig_percent,  # list: percentage of original text that is recognized as English words
+            "PRED" : pred_percent,  # list: percentage of predicted text that is recognized as English words
+            "ZIP" : zip_percent,    # list: zipped file of original/predicted percentages for each file
+            "FLAT" : flat_change,   # list: flat percentage change between original and predicted text
+            "PERC" : perc_change,   # list: percentage change between original and predicted text
+            "SIZE" : file_size      # list: number of words in each file
+        }
+    """
+    with open(ENGLISH_LEXICON_PICKLED, "rb") as f:
+        english_words = pickle.load(f)
+
+    orig_percent, pred_percent, file_size = [], [], []  
 
     total_files = 0
+    for model_folder in os.listdir(PREDICTED_DIRECTORY):
+        curr_path = PREDICTED_DIRECTORY + model_folder + "/"
+        for folder_name in os.listdir(curr_path):
+            for f in os.listdir(curr_path + folder_name):
+                total_files += 1
 
-    for folder_name in os.listdir(PREDICTED_TEXT_DIR):
-        if folder_name == ".DS_Store": # this is a file that mac machines automatically make that gets in the way
-            continue
-        for f in os.listdir(PREDICTED_TEXT_DIR + folder_name):
-            if f == ".DS_Store":
-                continue
-            total_files += 1
+                accurate_orig, accurate_pred = 0, 0
+                
+                orig_f = [line.split(" ") for line in open(DOC_DIRECTORY + folder_name + "/" + f.strip("P_"))]
+                pred_f = [line.split(" ") for line in open(curr_path + folder_name + "/" + f)]
 
-            accurate_orig, accurate_pred = 0, 0
+                for i in range(min(len(orig_f[0]), len(pred_f[0]))):
+                    if orig_f[0][i] in english_words:
+                        accurate_orig += 1
+                    if pred_f[0][i] in english_words:
+                        accurate_pred += 1
+                
+                orig_total = len(orig_f[0])
+                pred_total = len(pred_f[0])
 
-            orig_f = [line.split(" ") for line in open(RAW_TEXT_DIR + folder_name + "/" + f.strip("P_"))]
-            pred_f = [line.split(" ") for line in (open(PREDICTED_TEXT_DIR + folder_name + "/" + f))]
-            for i in range(len(pred_f[0])):
-                if orig_f[0][i] in english_words:
-                    accurate_orig += 1
-                if pred_f[0][i] in english_words:
-                    accurate_pred += 1
-            
-            orig_total = len(orig_f[0])
-            pred_total = len(pred_f[0])
+                d = {}
+                #d[filename] = [total words, overall accuracy, eng words in original, eng words in predicted, difference]
+                d[f] = [pred_total, accurate_orig, accurate_pred, accurate_pred - accurate_orig]
+                #print(f"ACCURACY: {textdistance.levenshtein.normalized_similarity(orig_f[0], pred_f[0])}")
+                orig_percent.append(accurate_orig / orig_total)
+                pred_percent.append(accurate_pred / pred_total)
+                file_size.append(pred_total)
 
-            d = {}
-            #d[filename] = [total words, overall accuracy, eng words in original, eng words in predicted, difference]
-            d[f] = [pred_total, accurate_orig, accurate_pred, accurate_pred - accurate_orig]
-            #print(f"ACCURACY: {textdistance.levenshtein.normalized_similarity(orig_f[0], pred_f[0])}")
-            orig_percent = np.append(orig_percent, accurate_orig / orig_total)
-            pred_percent = np.append(pred_percent, accurate_pred / pred_total)
-            file_size = np.append(file_size, pred_total)
-    
-    print(f"TOTAL FILES: {total_files}\n")
-    area = (0.01 * file_size)**2 * 0.5
+        zip_percent = list(zip(orig_percent, pred_percent))
+        flat_change = [p - o for o, p in zip_percent]
+        perc_change = [f / o if (o != 0) else 0 for o, f in list(zip(orig_percent, flat_change))]
 
-    """
-    plt.scatter(orig_percent, pred_percent, s=area, alpha=0.5)
-    plt.plot([-1, 2], [-1, 2], color="#000000", linestyle="dashed", linewidth="0.5")
-    plt.xlabel("Original Accuracy")
-    plt.ylabel("Predicted\nAccuracy", rotation="horizontal", loc="center")
-    plt.title(f"Machine Learning OCR Prediction Accuracies (n={total_files})")
-    plt.xlim(0, 1), plt.ylim(0, 1)
-    plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+        d = {
+            "TOTAL" : total_files,
+            "ORIG" : orig_percent,
+            "PRED" : pred_percent,
+            "ZIP" : zip_percent,
+            "FLAT" : flat_change,
+            "PERC" : perc_change,
+            "SIZE" : file_size
+        }
 
-    gll = plt.scatter([],[], s=(0.01 * 1000)**2 * 0.5, marker='o', color='#555555')
-    gl = plt.scatter([],[], s=(0.01 * 2000)**2 * 0.5, marker='o', color='#555555')
-    ga = plt.scatter([],[], s=(0.01 * 4000)**2 * 0.5, marker='o', color='#555555')
-    lgd = plt.legend((gll,gl,ga),
-       ('   1000', '    2000', '   4000'),
-       title="Words in File",
-       scatterpoints=1,
-       labelspacing=3,
-       bbox_to_anchor=(1.05, 1), 
-       loc='upper left', 
-       borderaxespad=0., 
-       borderpad=2,
-       #loc='lower right',
-       ncol=1,
-       fontsize=8)._legend_box.sep = 10
-    plt.savefig(f"{ACCUR_DIRECTORY}accuracy-testing-size.png", bbox_inches='tight')
-    # uncomment this and comment the other plt code to ignore text file sizes.
-    """
-    plt.scatter(orig_percent, pred_percent)
-    plt.plot([-1, 2], [-1, 2], color="#000000", linestyle="dashed", linewidth="0.5")
-    plt.xlabel("Original Accuracy")
-    plt.ylabel("Predicted\nAccuracy", rotation="horizontal", loc="center")
-    plt.title(f"Machine Learning OCR Prediction Accuracies (n={total_files})")
-    plt.xlim(0, 1), plt.ylim(0, 1)
-    plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
-    plt.savefig(f"{ACCUR_DIRECTORY}accuracy-testing-normal.png", bbox_inches='tight')
-    
-            
-        
+        with open(f"{RECOG_EVAL_DIRECTORY}{model_folder}.pkl", "wb") as f:
+            pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
+        f.close()
+        print(f"{model_folder} processed.")
+
     
 if __name__ == "__main__":
     main()
