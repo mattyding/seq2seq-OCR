@@ -13,20 +13,16 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from tensorflow import keras
-from nltk.tokenize import word_tokenize
-from process_coha import clean_text_v2
+from process_lexicons import clean_text_v2, retrieve_english_lexicon, retrieve_common_lexicon
 from settings_v2 import DATA_PATH, LATENT_DIM, NUM_SAMPLES, BREAK_CHAR
-from settings_v2 import FREQ_DIRECTORY, DOC_DIRECTORY, PREDICTED_DIRECTORY, ENGLISH_LEXICON
+from settings_v2 import SAVED_MODEL, FREQ_DIRECTORY, DOC_DIRECTORY, PREDICTED_DIRECTORY
 
-def main():
-    # adjusting directory
-    if "model_v2" not in os.getcwd():
-        os.chdir(os.getcwd() +  "/model_v2/")
-        
-    """ Preparing English Hashset """
-    english_words = set()
-    for line in open(ENGLISH_LEXICON):
-        english_words.add(line.strip())
+
+def evaluate_model():        
+    """ Retrieves English Hashsets """
+    english_words = retrieve_english_lexicon()  # large set containing many English words
+    common_lexicon = retrieve_common_lexicon()  # only commonly-used words
+
 
     """ Preparing Model """
     input_texts = []
@@ -58,7 +54,7 @@ def main():
     input_token_index = dict([(char, i) for i, char in enumerate(input_characters)])
     target_token_index = dict([(char, i) for i, char in enumerate(target_characters)])
 
-    model = keras.models.load_model("s2s-v2")
+    model = keras.models.load_model(SAVED_MODEL)
 
     encoder_inputs = model.input[0]  # input 1
     encoder_outputs, state_h_enc, state_c_enc = model.layers[2].output  # lstm 1
@@ -148,33 +144,44 @@ def main():
 
                 translated_doc = []
                 for i in range(len(doc_text)):
+                    # next word has been included; skips it
                     if couching:
                         couching = False
                         continue
 
                     word = doc_text[i]
 
+                    # if next word is recognizable, does not alter it
                     if word in english_words:
                         translated_doc.append(word)
-                    # couches split-up words
+                    # else if the next two entries make a word, couches them
                     elif ((i != len(doc_text) - 1) and ((word + doc_text[i+1]) in english_words)):
                         translated_doc.append(word + doc_text[i+1])
                         couching = True
-                    else :
-                        try:
-                            #print(f'WORD: "{word}"')
-                            word_data = np.zeros((len(input_texts), max_encoder_seq_length, num_encoder_tokens), dtype="float32")
-                            for t, char in enumerate(word):
-                                word_data[0, t, input_token_index[char]] = 1.0
-                            word_data[0, t + 1 :, input_token_index[" "]] = 1.0
-                            decoded_word = ""
-                            input_seq = word_data[0:1]
-                            decoded_word += decode_sequence(input_seq)
-                            #print("DECODED WORD: ", decoded_word)
-                            translated_doc.append(decoded_word.strip("\n"))
-                        except:
-                            print(f"Can't read word in {f}: {word}")
-                            translated_doc.append("...")
+                    else:
+                        # else if the word can be split up into valid words (i.e., missing spaces between words)
+                        split_word = check_compound(word, common_lexicon)
+                        if (len(split_word) != len(word)):
+                            translated_doc.append(split_word)
+                        # if those pre-checks don't pass, feeds the word into the seq2seq model
+                        else:
+                            try:
+                                word_data = np.zeros((len(input_texts), max_encoder_seq_length, num_encoder_tokens), dtype="float32")
+                                for t, char in enumerate(word):
+                                    word_data[0, t, input_token_index[char]] = 1.0
+                                word_data[0, t + 1 :, input_token_index[" "]] = 1.0
+                                decoded_word = ""
+                                input_seq = word_data[0:1]
+                                decoded_word += decode_sequence(input_seq)
+                                decoded_word = decoded_word.strip("\n")
+                                # only replaces original if model outputs a valid English word
+                                if decoded_word in english_words:
+                                    translated_doc.append(decoded_word)
+                                else:
+                                    translated_doc.append(word)
+                            except:
+                                print(f"Can't read word in {f}: {word}")
+                                translated_doc.append("...")
 
 
                 predicted_doc = open(PREDICTED_DIRECTORY + folder + "/P_" + f, "w+")
@@ -183,27 +190,43 @@ def main():
                 print("File Processed: " + f)
 
 
-                """
-                PyPlot graphs word frequencies
-                """
-                word_counts = {}
-                for word in translated_doc:
-                    if word not in word_counts:
-                        word_counts[word] = 1
-                    else:
-                        word_counts[word] += 1
+def check_compound(word, common_lexicon):
+    # list containing all of the recursively found splittings
+    found_splits = []
 
-                freqs, words = zip(*sorted(zip(word_counts.values(), word_counts.keys()))) 
-                freqs = freqs[::-1] # reverses so largest value comes first
-                words = words[::-1]
-                plot_size = min(len(word_counts), 30) # caps number of words at 30 max
-                if len(word_counts) > 30:
-                    freqs = freqs[0:30]
-                    words = words[0:30]
-                plt.barh([i for i in range(plot_size)], freqs)
-                plt.yticks(range(plot_size), words, rotation='horizontal')
-                plt.subplots_adjust(left=0.15)
-                plt.savefig(f"{FREQ_DIRECTORY}/{folder}/{f}_word_freq.png")
+    check_compound_recursive([word], common_lexicon, found_splits)
+
+    # no splits found
+    if len(found_splits) == 0:
+        return word
+    
+    # returns the splitting with fewest total splits (largest word-sections)
+    fewest_splits = min(found_splits, key=len)
+
+    # check to make sure it didn't find 2-word splits throughout (rejects < 3 letter average)
+    if len(word) / len(fewest_splits) < 3:
+        return word
+
+    return " ".join(fewest_splits)
+
+
+def check_compound_recursive(word_list, english_set, found_splits):
+    """
+    Recursive function to check if a word is a compound word (possibly caused by missing spaces between
+    two or more words. Each word in the division must be at least 4 letters long to safeguard against
+    false positives. If a proper seperation of the word is found, it is returned.
+    """
+    BUFFER = 2
+
+    # Base Case: the provided word can be compounded
+    if all(word in english_set for word in word_list):
+        found_splits.append(word_list)
+    # Recursive step, iterates through the chars of last item until the first part makes a word
+    for i in range(BUFFER, len(word_list[-1]) - (BUFFER - 1)):  # BUFFER to prevent false positives
+        if word_list[-1][:i] in english_set:
+            # splits the last elem in the word list at this index and recurses
+            check_compound_recursive(word_list[:-1] + [word_list[-1][:i], word_list[-1][i:]], english_set, found_splits)
+
 
 if __name__ == "__main__":
-    main()
+    evaluate_model()
