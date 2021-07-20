@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from tensorflow import keras
 from process_lexicons import clean_text_v2, retrieve_english_lexicon, retrieve_common_lexicon
 from settings_v2 import DATA_PATH, LATENT_DIM, NUM_SAMPLES, BREAK_CHAR
-from settings_v2 import SAVED_MODEL, FREQ_DIRECTORY, DOC_DIRECTORY, PREDICTED_DIRECTORY
+from settings_v2 import SAVED_MODEL, DOC_DIRECTORY, PREDICTED_DIRECTORY
 
 
 def evaluate_model():        
@@ -108,86 +108,97 @@ def evaluate_model():
 
     """ Testing """
 
+    # adds all files to test to pathsToTest
+    pathsToTest = []
+
     for folderpath in os.listdir(DOC_DIRECTORY):
+        # first folder: group of texts to be evaluated
         folder = folderpath.split("/")[-1]
         print(f"\nCURRENT FOLDER: {folder}")
-        if folder == ".DS_Store":
-            continue
         pathlib.Path(PREDICTED_DIRECTORY + folder).mkdir(parents=True, exist_ok=True)
-        pathlib.Path(FREQ_DIRECTORY + folder).mkdir(parents=True, exist_ok=True)
-        for f in os.listdir(DOC_DIRECTORY + folder + "/"):
-            if f == ".DS_Store":
-                continue
+        for f in os.listdir(DOC_DIRECTORY + folder + "/" + "*.txt"):
             # This checks if it's already been processed. If you want to re-run, delete the predicted text file
             if ("P_" + f) in os.listdir(PREDICTED_DIRECTORY + folder + "/"):
                 print(f"File Already Exists: {f}")
                 continue
-            else:
-                doc_text = []
-                textfile = open(f"{DOC_DIRECTORY + folder}/{f}")
-                try:
-                    for line in textfile:
-                        line = line.replace("\n", " ")
-                        line = line.replace("\t", "")
-                        line = line.replace("- ", "")
-                        for word in line.split(" "):
-                            word = clean_text_v2(word)
-                            if len(word) > 0:
-                                doc_text.append(word)
-                except:
-                    print(f"Unicode Error: {f}")
-                    continue
-
-                num_encoder_tokens = encoder_inputs.shape[2]
-
-                couching = False # couching bool tracks if the next word has already been included
-
-                translated_doc = []
-                for i in range(len(doc_text)):
-                    # next word has been included; skips it
-                    if couching:
-                        couching = False
+            pathsToTest.append(DOC_DIRECTORY + folder + "/" + f)
+        for item in os.listdir(DOC_DIRECTORY + folder + "/"):
+            if os.path.isdir(item):
+                pathlib.Path(PREDICTED_DIRECTORY + folder + "/" + item).mkdir(parents=True, exist_ok=True)
+                # if it is another folder, adds all files in there to pathsToTest
+                for f2 in os.listdir(DOC_DIRECTORY + folder + "/" + item + "/"):
+                    if ("P_" + f2) in os.listdir(PREDICTED_DIRECTORY + folder + "/"):
+                        print(f"File Already Exists: {f2}")
                         continue
+                    pathsToTest.append(DOC_DIRECTORY + folder + "/" + item + "/" + f2)
+    
 
-                    word = doc_text[i]
+    while (len(pathsToTest) > 0):
+        doc_text = []
+        textfile = open(pathsToTest.pop(0), "r")
+        try:
+            for line in textfile:
+                line = line.replace("\n", " ")
+                line = line.replace("\t", "")
+                line = line.replace("- ", "")
+                for word in line.split(" "):
+                    word = clean_text_v2(word)
+                    if len(word) > 0:
+                        doc_text.append(word)
+        except:
+            print(f"Unicode Error: {f}")
+            continue
 
-                    # if next word is recognizable, does not alter it
-                    if word in english_words:
-                        translated_doc.append(word)
-                    # else if the next two entries make a word, couches them
-                    elif ((i != len(doc_text) - 1) and ((word + doc_text[i+1]) in english_words)):
-                        translated_doc.append(word + doc_text[i+1])
-                        couching = True
-                    else:
-                        # else if the word can be split up into valid words (i.e., missing spaces between words)
-                        split_word = check_compound(word, common_lexicon)
-                        if (len(split_word) != len(word)):
-                            translated_doc.append(split_word)
-                        # if those pre-checks don't pass, feeds the word into the seq2seq model
+        num_encoder_tokens = encoder_inputs.shape[2]
+
+        couching = False # couching bool tracks if the next word has already been included
+
+        translated_doc = []
+        for i in range(len(doc_text)):
+            # next word has been included; skips it
+            if couching:
+                couching = False
+                continue
+
+            word = doc_text[i]
+
+            # if next word is recognizable, does not alter it
+            if word in english_words:
+                translated_doc.append(word)
+            # else if the next two entries make a word, couches them
+            elif ((i != len(doc_text) - 1) and ((word + doc_text[i+1]) in english_words)):
+                translated_doc.append(word + doc_text[i+1])
+                couching = True
+            else:
+                # else if the word can be split up into valid words (i.e., missing spaces between words)
+                split_word = check_compound(word, common_lexicon)
+                if (len(split_word) != len(word)):
+                    translated_doc.append(split_word)
+                # if those pre-checks don't pass, feeds the word into the seq2seq model
+                else:
+                    try:
+                        word_data = np.zeros((len(input_texts), max_encoder_seq_length, num_encoder_tokens), dtype="float32")
+                        for t, char in enumerate(word):
+                            word_data[0, t, input_token_index[char]] = 1.0
+                        word_data[0, t + 1 :, input_token_index[" "]] = 1.0
+                        decoded_word = ""
+                        input_seq = word_data[0:1]
+                        decoded_word += decode_sequence(input_seq)
+                        decoded_word = decoded_word.strip("\n")
+                        # only replaces original if model outputs a valid English word
+                        if decoded_word in english_words:
+                            translated_doc.append(decoded_word)
                         else:
-                            try:
-                                word_data = np.zeros((len(input_texts), max_encoder_seq_length, num_encoder_tokens), dtype="float32")
-                                for t, char in enumerate(word):
-                                    word_data[0, t, input_token_index[char]] = 1.0
-                                word_data[0, t + 1 :, input_token_index[" "]] = 1.0
-                                decoded_word = ""
-                                input_seq = word_data[0:1]
-                                decoded_word += decode_sequence(input_seq)
-                                decoded_word = decoded_word.strip("\n")
-                                # only replaces original if model outputs a valid English word
-                                if decoded_word in english_words:
-                                    translated_doc.append(decoded_word)
-                                else:
-                                    translated_doc.append(word)
-                            except:
-                                print(f"Can't read word in {f}: {word}")
-                                translated_doc.append("...")
+                            translated_doc.append(word)
+                    except:
+                        print(f"Can't read word in {f}: {word}")
+                        translated_doc.append("...")
 
 
-                predicted_doc = open(PREDICTED_DIRECTORY + folder + "/P_" + f, "w+")
-                predicted_doc.write(" ".join(translated_doc))
-                predicted_doc.close()
-                print("File Processed: " + f)
+        predicted_doc = open(PREDICTED_DIRECTORY + folder + "/P_" + f, "w+")
+        predicted_doc.write(" ".join(translated_doc))
+        predicted_doc.close()
+        print("File Processed: " + f)
 
 
 def check_compound(word, common_lexicon):

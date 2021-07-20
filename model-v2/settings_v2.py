@@ -50,5 +50,4 @@ COMMON_ENG_LEXICON_PICKLED = dirname + "../source-data/google-common-english.pkl
 
 # GRAPHS AND REPORTS
 FIGURE_DIRECTORY = dirname + "/../testing-and-evaluation/figures/"  # directory to store figures
-FREQ_DIRECTORY = dirname + "/../testing-and-evaluation/word-freq-reports/"  # word frequency plots
 
