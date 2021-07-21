@@ -47,7 +47,7 @@ def graph(graphType, graphLevel="basic") -> None:
    plt.rcParams['legend.numpoints'] = 1
 
    # prepares data from pickle file
-   with open(f"{RECOG_EVAL_DIRECTORY}model_v2.pkl", "rb") as f:
+   with open(f"{RECOG_EVAL_DIRECTORY}model_v2-times-random-sample.pkl", "rb") as f:
       d = pickle.load(f)
 
    total_files = d["TOTAL"]

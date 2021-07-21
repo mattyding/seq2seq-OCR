@@ -107,35 +107,16 @@ def evaluate_model():
         return decoded_sentence
 
     """ Testing """
-
-    # adds all files to test to pathsToTest
-    pathsToTest = []
-
-    for folderpath in os.listdir(DOC_DIRECTORY):
-        # first folder: group of texts to be evaluated
-        folder = folderpath.split("/")[-1]
-        print(f"\nCURRENT FOLDER: {folder}")
-        pathlib.Path(PREDICTED_DIRECTORY + folder).mkdir(parents=True, exist_ok=True)
-        for f in os.listdir(DOC_DIRECTORY + folder + "/" + "*.txt"):
-            # This checks if it's already been processed. If you want to re-run, delete the predicted text file
-            if ("P_" + f) in os.listdir(PREDICTED_DIRECTORY + folder + "/"):
-                print(f"File Already Exists: {f}")
-                continue
-            pathsToTest.append(DOC_DIRECTORY + folder + "/" + f)
-        for item in os.listdir(DOC_DIRECTORY + folder + "/"):
-            if os.path.isdir(item):
-                pathlib.Path(PREDICTED_DIRECTORY + folder + "/" + item).mkdir(parents=True, exist_ok=True)
-                # if it is another folder, adds all files in there to pathsToTest
-                for f2 in os.listdir(DOC_DIRECTORY + folder + "/" + item + "/"):
-                    if ("P_" + f2) in os.listdir(PREDICTED_DIRECTORY + folder + "/"):
-                        print(f"File Already Exists: {f2}")
-                        continue
-                    pathsToTest.append(DOC_DIRECTORY + folder + "/" + item + "/" + f2)
-    
+    # adds all files to test to a queue (list) and returns the queue
+    pathsToTest = gatherPaths()
+    total_files = len(pathsToTest)
 
     while (len(pathsToTest) > 0):
+        currPath = pathsToTest.pop(0)
+
         doc_text = []
-        textfile = open(pathsToTest.pop(0), "r")
+        textfile = open(currPath, "r")
+
         try:
             for line in textfile:
                 line = line.replace("\n", " ")
@@ -148,6 +129,8 @@ def evaluate_model():
         except:
             print(f"Unicode Error: {f}")
             continue
+
+        textfile.close()
 
         num_encoder_tokens = encoder_inputs.shape[2]
 
@@ -194,14 +177,23 @@ def evaluate_model():
                         print(f"Can't read word in {f}: {word}")
                         translated_doc.append("...")
 
-
-        predicted_doc = open(PREDICTED_DIRECTORY + folder + "/P_" + f, "w+")
+        # pathSegment is the part of the folders inside the DOC_DIRECTORY
+        pathSegment = currPath[currPath.find(DOC_DIRECTORY) + len(DOC_DIRECTORY):]
+        lastDirec = pathSegment.rfind("/") # index of the last "/" in the path
+        predictedPath = PREDICTED_DIRECTORY + pathSegment[:lastDirec + 1] + "P_" + pathSegment[lastDirec + 1:]
+        predicted_doc = open(predictedPath, "w+")
         predicted_doc.write(" ".join(translated_doc))
         predicted_doc.close()
-        print("File Processed: " + f)
+        print(f"File Processed: {pathSegment}")
+    
+    print(f"Processing complete. Total number of files read: {total_files}")
 
 
 def check_compound(word, common_lexicon):
+    """
+    Checks if a word is a compound word and returns the split word if it is. Does so by 
+    using the recursive function check_compound_recursive
+    """
     # list containing all of the recursively found splittings
     found_splits = []
 
@@ -238,6 +230,27 @@ def check_compound_recursive(word_list, english_set, found_splits):
             # splits the last elem in the word list at this index and recurses
             check_compound_recursive(word_list[:-1] + [word_list[-1][:i], word_list[-1][i:]], english_set, found_splits)
 
+
+def gatherPaths():
+    """
+    Gathers the paths of all unprocessed files in the DOC_DIRECTORY (and any subsequent subdirectories
+    of DOC_DIRECTORY, up to two) and returns them as a list.
+    """
+    # generates a set of files that have already been processed. These will be skipped
+    # If you want to re-run, delete the predicted text file in the PREDICTED_DIRECTORY
+    alreadyProcessed = set(os.walk(PREDICTED_DIRECTORY).__next__()[2])
+
+    pathsToTest = [] # list of tuples in the format (root, file)
+
+    for root, dirs, files in os.walk(DOC_DIRECTORY):
+        for f in files:
+            if f.endswith(".txt"):
+                # checks if it's already been processed
+                if ("P_" + f) in alreadyProcessed:
+                    continue
+                pathsToTest.append(root + "/" + f)
+
+    return pathsToTest
 
 if __name__ == "__main__":
     evaluate_model()
