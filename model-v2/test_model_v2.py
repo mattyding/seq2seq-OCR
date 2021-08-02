@@ -18,7 +18,7 @@ from settings_v2 import DATA_PATH, LATENT_DIM, NUM_SAMPLES, BREAK_CHAR
 from settings_v2 import SAVED_MODEL, DOC_DIRECTORY, PREDICTED_DIRECTORY
 
 
-def evaluate_model():        
+def evaluate_model(): 
     """ Retrieves English Hashsets """
     english_words = retrieve_english_lexicon()  # large set containing many English words
     common_lexicon = retrieve_common_lexicon()  # only commonly-used words
@@ -180,7 +180,10 @@ def evaluate_model():
         # pathSegment is the part of the folders inside the DOC_DIRECTORY
         pathSegment = currPath[currPath.find(DOC_DIRECTORY) + len(DOC_DIRECTORY):]
         lastDirec = pathSegment.rfind("/") # index of the last "/" in the path
-        predictedPath = PREDICTED_DIRECTORY + pathSegment[:lastDirec + 1] + "P_" + pathSegment[lastDirec + 1:]
+        predictedDirec = predictedPath = PREDICTED_DIRECTORY + pathSegment[:lastDirec + 1]
+        if (not os.path.exists(predictedDirec)):
+            os.makedirs(predictedDirec)
+        predictedPath = predictedDirec + "P_" + pathSegment[lastDirec + 1:]
         predicted_doc = open(predictedPath, "w+")
         predicted_doc.write(" ".join(translated_doc))
         predicted_doc.close()

@@ -12,7 +12,7 @@ import string
 import pickle
 from settings_v2 import LABELED_OCR_ERRORS, LETTER_SUBSTITUTIONS, LETTER_PROB_FIG
 from settings_v2 import NUM_LETTER_SUB_DICT, PROB_LETTER_SUB_DICT, ERROR_PROB_DICT
-from process_coha import clean_text_v2
+from process_lexicons import clean_text_v2
 
 
 def rerun_data_processing():

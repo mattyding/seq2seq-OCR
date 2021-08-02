@@ -2,14 +2,11 @@
 File: prepare_data_v2.py
 --------------------
 Generates training data with forced errors.
-
-Stems training data.
 """
 import os
 import numpy as np
 import string
-from nltk.stem import PorterStemmer
-from process_coha import clean_text_v2
+from process_lexicons import clean_text_v2
 from settings_v2 import ENGLISH_LEXICON, COMMON_ENG_LEXICON, COHA_DIRECTORY
 from settings_v2 import DATA_PATH
 from process_letter_sub import *
@@ -41,7 +38,7 @@ def write_training_data(replace=True):
     error_prob_dict = retrieve_ocr_error_dict()
 
     for word in words:
-        # every 3/20 characters is noisy
+        # each character is evaluated against its probability of error
         all_text.write(simulate_ocr_noise(word, prob_sub_dict, error_prob_dict) + "\t" + word + "\n")
     
     print("Training data written.")

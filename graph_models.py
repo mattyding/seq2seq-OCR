@@ -35,8 +35,10 @@ def graph(graphType, graphLevel="basic") -> None:
    Graphs evaluated models. To evaluate models, use accuracy_counter.py
 
    Args:
-      graphType: String, "accuracy" or "change"
-      graphLevel: String, "basic" or "advanced"
+      graphType: Type of graph to make.
+      graphLevel: String, "basic" or "size-color".
+   Args:
+
    """
    checkParams(graphType, graphLevel)
 
@@ -61,9 +63,9 @@ def graph(graphType, graphLevel="basic") -> None:
    # groups files by word count
    xs_files = SizeBucket(0, 249, "pink")
    small_files = SizeBucket(250, 499, "red")
-   med_files = SizeBucket(500, 999, "yellow")
-   large_files = SizeBucket(1000, 2499, "green")
-   xl_files = SizeBucket(2500, max(file_size), "blue")
+   med_files = SizeBucket(500, 999, "green")
+   large_files = SizeBucket(1000, 2499, "blue")
+   xl_files = SizeBucket(2500, max(file_size), "black")
 
    ordered_buckets = [xs_files, small_files, med_files, large_files, xl_files]
 
