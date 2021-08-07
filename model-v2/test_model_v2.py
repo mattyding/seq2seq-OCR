@@ -113,6 +113,10 @@ def evaluate_model():
 
     while (len(pathsToTest) > 0):
         currPath = pathsToTest.pop(0)
+        
+        if os.path.isfile(currPath):
+            print(f"File Already Exists: {currPath}")
+            continue
 
         doc_text = []
         textfile = open(currPath, "r")
