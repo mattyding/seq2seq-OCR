@@ -16,36 +16,34 @@ def main():
 
 
 def write_training_data():
-    words = []
+    # these retrieval functions are stored in "process_letter_sub.py" and unpickle stored data
+    prob_sub_dict = retrieve_prob_sub_dict()
+    error_prob_dict = retrieve_ocr_error_dict()
+
+    word_pairs = []
     for f in os.listdir(COHA_DIRECTORY):
         textfile = open(f"{COHA_DIRECTORY}{f}")
         print_statusline(f"Processing File: {f}")
         for line in textfile:
             word = line.split("\t")[1]
             word = clean_text_no_spaces(word)
-            if word.isalpha() and (len(word) <= MAX_SEQ_LENGTH):
-                words.append(word)
+            # model is only evaluated on words >=3 characters
+            if len(word) <= 3 or len(word) >= MAX_SEQ_LENGTH or not word.isalpha():
+                continue
+            noisy_word = word
+            while (noisy_word == word):
+                # each character is evaluated against its probability of error
+                noisy_word = simulate_ocr_noise(word, prob_sub_dict, error_prob_dict)
+            word_pairs.append(noisy_word + "\t" + word + "\n")
+
     print_statusline("COHA Files Processed.\n")
-    print(f"Total Number of Words: {len(words)}")
+    print(f"Total Number of Words: {len(word_pairs)}")
     print("Writing Training Data to File.")
 
-    # these retrieval functions are stored in "process_letter_sub.py" and unpickle stored data
-    prob_sub_dict = retrieve_prob_sub_dict()
-    error_prob_dict = retrieve_ocr_error_dict()
-
-    # splits data into 500k-word training sets
-    SETS_PER_FILE = 500000
-    file_num = 1
-    while(((file_num - 1) * SETS_PER_FILE) <= len(words)):
-        training_file = open(DATA_PATH[:DATA_PATH.rfind('.')] + "_" + str(file_num) + '.txt', "w")
-        for word in words[(file_num-1) * SETS_PER_FILE : min(file_num * SETS_PER_FILE, len(words))]:
-            # each character is evaluated against its probability of error
-            noisy_word = simulate_ocr_noise(word, prob_sub_dict, error_prob_dict)
-            training_file.write(noisy_word + "\t" + word + "\n")
+    with open(DATA_PATH, "w") as training_file:
+        for pair in word_pairs:
+            training_file.write(pair)
         training_file.close()
-        file_num += 1
-
-        print_statusline("File " + str(file_num) + " written.")
 
     print("All Training Data Written.")
 
@@ -61,6 +59,7 @@ def simulate_ocr_noise(word, prob_sub_dict, error_prob_dict):
         probError = error_prob_dict[currLetter]
         random = np.random.uniform(0, 1, 1)
         if (random < probError):
+            # get_random_letter_substituion() can sometimes return nothing (pseudo-deletion)
             noisy_word.append(get_random_letter_substitution(currLetter, prob_sub_dict))
             
         else:

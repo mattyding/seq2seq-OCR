@@ -30,4 +30,5 @@ def clean_text(text : str) -> str:
     """
     Removes all non-alphabetical characters from the input text.
     """
+    text = re.sub("- ", "", text)
     return alpha_regex_with_spaces.sub('', text)

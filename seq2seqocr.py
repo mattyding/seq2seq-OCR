@@ -10,20 +10,31 @@ from threading import Thread, Lock
 from general_util import clean_text
 from settings import *
 
-MODEL = __file__[:-len("oop_model2.py")] + "s2s/"
-MODEL_V2 = __file__[:-len("oop_model2.py")] + "s2s-v3/"
 CLASSIFICATION_TOKEN = "[CLS]"
+UNIDENTIFIABLE_TOKEN = "[...]"
 
 def main():
-    model = Seq2SeqOCR(MODEL)
+    model = Seq2SeqOCR('s2s')
+    print(model.predict("loods"))
+
+    #print(model.predict('clty'))
+    #print(model.predict('affiftant'))
+    return
 
     with open("SAMPLE_FILE.txt", 'r') as f:
         sample_text = f.read()
-        print(model.preprocess(sample_text))
+        cleaned_text = model.preprocess(sample_text)
+        print(cleaned_text)
 
-    #with open(__file__[:-len("oop_model2.py")] + "SAMPLE_FILE.txt", 'r') as f:
-        #sample_text = f.read()
-        #sample_words = [clean_text_v2(w) for w in sample_text.split()]
+        #ew_text = []
+        #for word in cleaned_text.split():
+            #if word.startswith(CLASSIFICATION_TOKEN):
+                #predicted_word = model.predict(word[len(CLASSIFICATION_TOKEN):])
+                #print(word[len(CLASSIFICATION_TOKEN):], predicted_word)
+                #new_text.append(predicted_word)
+            #else:
+                #new_text.append(word)
+        #print("".join(new_text))
 
 
 class Seq2SeqOCR:
@@ -61,19 +72,16 @@ class Seq2SeqOCR:
         )
 
     def predict(self, input_text : str) -> str:
-        words = input_text.split()
-        word_data = self.encode_sequence(input_text)
-        decoded_word = ""
-        decoded_word += self.decode_sequence(word_data)
-        print(decoded_word)
-        #return self.decode_sequence(input_seq)
+        encoded_word = self.encode_sequence(input_text)
+        decoded_word = self.decode_sequence(encoded_word)
+        return decoded_word
 
     def encode_sequence(self, input_text : str) -> np.array:
-        #word_data = np.zeros((1, self.Input.max_seq_length, self.Input.num_tokens), dtype="float32")
-        word_data = np.zeros((1, 30, 27), dtype="float32")
+        word_encoding = np.zeros((1, self.Input.max_seq_length, self.Input.num_tokens), dtype="float32")
         for t, char in enumerate(input_text):
-            word_data[0, t, self.Input.token_index[char]] = 1.0
-        return word_data
+            word_encoding[0, t, self.Input.token_index[char]] = 1.0
+        word_encoding[0, t + 1 :, self.Input.token_index[" "]] = 1.0
+        return word_encoding
     
     def decode_sequence(self, input_seq : np.array) -> str:
         # Encode the input as state vectors.
@@ -98,7 +106,7 @@ class Seq2SeqOCR:
 
             # Exit condition: either hit max length
             # or find stop character.
-            if sampled_char == "\n" or len(decoded_sentence) > self.Target.max_seq_length:
+            if sampled_char == ENDSEQ_CHAR or len(decoded_sentence) > self.Target.max_seq_length:
                 stop_condition = True
 
             # Update the target sequence (of length 1).
@@ -117,7 +125,7 @@ class Seq2SeqOCR:
         """
 
         # Clean the input text
-        input_text = clean_text(input_text)
+        input_text = clean_text(input_text.lower())
         # Split the input text into words
         split_text = input_text.split()
 
@@ -146,12 +154,12 @@ class Seq2SeqOCR:
                 # if cannot find valid split, returns original word (same length)
                 preprocessed_text.append(check_compound(word, self.common_lexicon, self.memoized_words))
             # 5. Too Long (likely compound): If larger than max_seq_length, returns original word
-            elif (len(split_text) > MAX_SEQ_LENGTH):
-                preprocessed_text.append(word)
+            elif (len(word) > MAX_SEQ_LENGTH):
+                preprocessed_text.append(UNIDENTIFIABLE_TOKEN)
             # 6. Unknown and Inferable: if other pre-checks don't pass, feeds it to the seq2seq model
             else:
-                #preprocessed_text.append(CLASSIFICATION_TOKEN + word)
-                preprocessed_text.append(CLASSIFICATION_TOKEN)
+                preprocessed_text.append(CLASSIFICATION_TOKEN + word)
+                #preprocessed_text.append(CLASSIFICATION_TOKEN)
         
         return " ".join(preprocessed_text)
 
@@ -167,7 +175,7 @@ class CharacterTable:
         super(CharacterTable, self).__init__()
         self.characters = sorted(list(char_set))
         self.num_tokens = len(char_set)
-        self.max_seq_length = max([len(txt) for txt in text_set])
+        self.max_seq_length = MAX_SEQ_LENGTH #max([len(txt) for txt in text_set])
         self.token_index = dict([(char, i) for i, char in enumerate(char_set)])
         self.reverse_token_index = dict((i, char) for char, i in self.token_index.items())
 
@@ -179,17 +187,19 @@ def parse_training_data():
         target_characters.add(c)
     target_characters.add(BREAK_CHAR)
     target_characters.add(ENDSEQ_CHAR)
+    input_characters.add(' ')
+    target_characters.add(' ')
 
     input_texts = []
     target_texts = []
-    with open(DATA_PATH, "r", encoding="utf-8") as f:
-        lines = f.read().split("\n")
-    for line in lines[: min(NUM_SAMPLES, len(lines) - 1)]:
-        # tab is our break char and newline is end seq char
-        input_text, target_text = line.split(BREAK_CHAR)
-        target_text = BREAK_CHAR + target_text + ENDSEQ_CHAR
-        input_texts.append(input_text)
-        target_texts.append(target_text)
+    with open(DATA_PATH, 'r', encoding="utf-8") as f:
+        lines = f.read().split("\n")[:-1]  # last line has no BREAK_CHAR
+        for line in lines:
+            # tab is our break char and newline is end seq char
+            input_text, target_text = line.split(BREAK_CHAR)
+            target_text = BREAK_CHAR + target_text + ENDSEQ_CHAR
+            input_texts.append(input_text)
+            target_texts.append(target_text)
     
     return input_texts, target_texts, input_characters, target_characters
 

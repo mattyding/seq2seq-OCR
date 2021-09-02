@@ -3,6 +3,7 @@ File: train_model.py
 --------------------
 This file builds the seq2seq architecture and trains the model.
 """
+import os
 import string
 import numpy as np
 import tensorflow as tf
@@ -11,12 +12,34 @@ from settings import DATA_PATH, BREAK_CHAR, ENDSEQ_CHAR, MAX_SEQ_LENGTH
 from settings import BATCH_SIZE, EPOCHS, LATENT_DIM, NUM_SAMPLES
 from settings import SAVED_MODEL
 from general_util import clean_text_no_spaces
+import matplotlib.pyplot as plt
 
 
-DATA= 'training-sets/forced_errors_1.txt'
+def train_all_data(training_directory=DATA_PATH):
+    """
+    Splits the training data into 500k sample chunks and trains the model over all chunks.
+    First training initalizes a set of weights. Subsequent training updates them.
+    """
+    SAMPLES_PER_CHUNK = 500000
+    split_num = 1
+
+    training_lines = []
+    with open(DATA_PATH, 'r') as f:
+        for line in f:
+            training_lines.append(line)
+    
+    while(((split_num - 1) * SAMPLES_PER_CHUNK) <= len(training_lines)):
+        print("Currently Training on Samples ", SAMPLES_PER_CHUNK * (split_num - 1), " to ", SAMPLES_PER_CHUNK * split_num)
+        chunk = training_lines[(split_num-1) * SAMPLES_PER_CHUNK : min(split_num * SAMPLES_PER_CHUNK, len(training_lines))]
+        if split_num == 1:
+            train_model(chunk, split_num)  # initalizes model with one set
+        else:
+            train_model(chunk, split_num, SAVED_MODEL)  # updates weights with other training sets
+
+        split_num += 1
 
 
-def train_model(training_data, saved_model=None):
+def train_model(training_lines, split_num, saved_model=None):
     """
     Data Preparation
     """
@@ -29,13 +52,12 @@ def train_model(training_data, saved_model=None):
     # tab ('\t') is our break char and newline ('\n') is end seq char
     target_characters.add(BREAK_CHAR)
     target_characters.add(ENDSEQ_CHAR)
+    input_characters.add(" ")
+    target_characters.add(" ")
 
     input_texts = []
     target_texts = []
-    with open(training_data, "r", encoding="utf-8") as f:
-        lines = f.read().split("\n")
-    for line in lines[: min(NUM_SAMPLES, len(lines) - 1)]:
-        
+    for line in training_lines:
         input_text, target_text = line.split(BREAK_CHAR)
         target_text = BREAK_CHAR + target_text + ENDSEQ_CHAR
         input_texts.append(input_text)
@@ -46,7 +68,7 @@ def train_model(training_data, saved_model=None):
     num_encoder_tokens = len(input_characters)
     num_decoder_tokens = len(target_characters)
     max_encoder_seq_length = MAX_SEQ_LENGTH
-    max_decoder_seq_length = MAX_SEQ_LENGTH
+    max_decoder_seq_length = MAX_SEQ_LENGTH + 2
 
     print("Number of samples:", len(input_texts))
     print("Number of unique input tokens:", num_encoder_tokens)
@@ -71,6 +93,7 @@ def train_model(training_data, saved_model=None):
     for i, (input_text, target_text) in enumerate(zip(input_texts, target_texts)):
         for t, char in enumerate(input_text):
             encoder_input_data[i, t, input_token_index[char]] = 1.0
+        encoder_input_data[i, t + 1 :, input_token_index[" "]] = 1.0
         for t, char in enumerate(target_text):
             # decoder_target_data is ahead of decoder_input_data by one timestep
             decoder_input_data[i, t, target_token_index[char]] = 1.0
@@ -78,7 +101,8 @@ def train_model(training_data, saved_model=None):
                 # decoder_target_data will be ahead by one timestep
                 # and will not include the start character.
                 decoder_target_data[i, t - 1, target_token_index[char]] = 1.0
-
+        decoder_input_data[i, t + 1 :, target_token_index[" "]] = 1.0
+        decoder_target_data[i, t:, target_token_index[" "]] = 1.0
     """
     Building Model
     """
@@ -123,12 +147,25 @@ def train_model(training_data, saved_model=None):
         batch_size = BATCH_SIZE,
         epochs = EPOCHS,
         validation_split=0.2,
-        callbacks=[earlystop, earlystop]
+        callbacks=[earlystop]
     )
     # save trained model weights
     model.save(SAVED_MODEL)
-    #model.save_weights(SAVED_MODEL)
+    model.save_weights(SAVED_MODEL)
+
+    """
+    PyPlot graphs training accuracies
+    """
+    plt.plot(history.history['accuracy'], label='training accuracy' + str(split_num))
+    plt.plot(history.history['val_accuracy'], label='testing accuracy' + str(split_num))
+    plt.title('Accuracy')
+    plt.xlabel('epochs')
+    plt.ylabel('accuracy')
+    plt.legend()
+    plt.savefig(f"accuracy-training.png")
+
+    print('"\nModel saved to "s2s" folder. Accuracy graph created and saved.\n"')
 
 
 if __name__ == '__main__':
-    train_model(DATA, saved_model=SAVED_MODEL)
+    train_all_data()

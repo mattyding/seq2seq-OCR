@@ -25,8 +25,8 @@ BREAK_CHAR = '\t' # seperator character in data
 ENDSEQ_CHAR = '\n' # denotes end of sequence for decoder
 MAX_SEQ_LENGTH = 15 # maximum length of input sequence
 
-DATA_PATH = dirname + "training-sets/forced_errors.txt" # path to data text file; "./" indicates current folder area
-SAVED_MODEL = dirname + "temp-weights/s2s/"
+DATA_PATH = dirname + "training-sets/forced_errors.txt" # path to data directory
+SAVED_MODEL = dirname + "s2s/"
 
 """
 Directory Navigation
