@@ -3,22 +3,21 @@ File: train_model.py
 --------------------
 This file builds the seq2seq architecture and trains the model.
 """
-import os
 import string
 import numpy as np
-import tensorflow as tf
 from tensorflow import keras
-from settings import DATA_PATH, BREAK_CHAR, ENDSEQ_CHAR, MAX_SEQ_LENGTH
-from settings import BATCH_SIZE, EPOCHS, LATENT_DIM, NUM_SAMPLES
-from settings import SAVED_MODEL
-from general_util import clean_text_no_spaces
 import matplotlib.pyplot as plt
+from settings import DATA_PATH, BREAK_CHAR, ENDSEQ_CHAR, MAX_SEQ_LENGTH
+from settings import BATCH_SIZE, EPOCHS, LATENT_DIM
+from settings import SAVED_MODEL
 
 
-def train_all_data(training_directory=DATA_PATH):
+def train_all_data(training_directory : str =DATA_PATH):
     """
     Splits the training data into 500k sample chunks and trains the model over all chunks.
     First training initalizes a set of weights. Subsequent training updates them.
+
+    By default, training directory is DATA_PATH.
     """
     SAMPLES_PER_CHUNK = 500000
     split_num = 1
@@ -39,11 +38,10 @@ def train_all_data(training_directory=DATA_PATH):
         split_num += 1
 
 
-def train_model(training_lines, split_num, saved_model=None):
+def train_model(training_lines : list, split_num : int, saved_model=None):
     """
     Data Preparation
     """
-
     input_characters = set()
     target_characters = set()
     for c in string.ascii_lowercase:
@@ -154,7 +152,7 @@ def train_model(training_lines, split_num, saved_model=None):
     model.save_weights(SAVED_MODEL)
 
     """
-    PyPlot graphs training accuracies
+    Graph Accuracies
     """
     plt.plot(history.history['accuracy'], label='training accuracy' + str(split_num))
     plt.plot(history.history['val_accuracy'], label='testing accuracy' + str(split_num))
@@ -164,7 +162,7 @@ def train_model(training_lines, split_num, saved_model=None):
     plt.legend()
     plt.savefig(f"accuracy-training.png")
 
-    print('"\nModel saved to "s2s" folder. Accuracy graph created and saved.\n"')
+    print(f'"\nModel saved to "{DATA_PATH[DATA_PATH.rfind("/"):]}" folder. Accuracy graph created and saved.\n"')
 
 
 if __name__ == '__main__':
