@@ -1,11 +1,9 @@
 """
-File: create-word-set.py
+File: process_lexicons.py
 ------------------------
-Combines words from several sources into a document to create a
-robust english language dictionary.
+Combines words from several sources into a document to create a robust english language lexicon.
 """
 import os
-import re
 import pickle
 from general_util import print_statusline, clean_text_no_spaces
 from settings import COHA_DIRECTORY, COMMON_ENG_LEXICON
@@ -14,7 +12,7 @@ from settings import ENGLISH_LEXICON_PKL, COMMON_ENG_LEXICON_PKL
 
 def main():
     store_english_lexicon()
-    store_common_lexicon
+    store_common_lexicon()
 
 def store_english_lexicon(override=True):
     """

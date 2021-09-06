@@ -1,3 +1,9 @@
+"""
+File: seq2seqocr.py
+-------------------
+This file contains the implementation of the Seq2SeqOCR Class, which loads the saved
+seq2seq model and provides methods for predicting the correction for a given OCR error.
+"""
 import pickle  # for lexicons
 import string
 import numpy as np
@@ -8,9 +14,6 @@ from settings import *
 
 CLASSIFICATION_TKN = "[CLS]"
 UNIDENTIFIABLE_TOKEN = "[...]"
-
-# error messages
-MODEL_SCOPE_MSG = "The model is only trained to predict single words. Use the 'process_text' to run the model on multi-word strings.'"
 
 class Seq2SeqOCR:
     def __init__(self, model_path : str =SAVED_MODEL):
@@ -288,3 +291,4 @@ def populate_compound_memory(memoized_words : dict) -> None:
     memoized_words['canbe'] = 'can be'
     memoized_words['goto'] = 'go to'
     memoized_words['orthem'] = 'or them'
+    memoized_words['thatthe'] = 'that the'

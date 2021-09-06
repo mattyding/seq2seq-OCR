@@ -45,7 +45,7 @@ PROB_LETTER_SUB_DICT = dirname + "training-sets/source-data/letter_sub_prob.pkl"
 # probability of OCR error per letter
 ERROR_PROB_DICT = dirname + "training-sets/source-data/ocr_error_prob.pkl"
 
-LETTER_PROB_FIG = dirname + "testing-and-evaluation/figures/ocr_error_probability.png" # stores prob graph
+LETTER_PROB_FIG = dirname + "figures/ocr_error_probability.png" # stores prob graph
 
 # ENGLISH LEXICONS
 COHA_DIRECTORY = dirname + "training-sets/source-data/COHA-sample-data/"  # COHA samples
@@ -55,7 +55,7 @@ COMMON_ENG_LEXICON = dirname + "training-sets/source-data/google_english_cleaned
 COMMON_ENG_LEXICON_PKL = dirname + "training-sets/source-data/common_hashset.pkl"
 
 # GRAPHS AND REPORTS
-FIGURE_DIRECTORY = dirname + "testing-and-evaluation/figures/"  # directory to store figures
+FIGURE_DIRECTORY = dirname + "figures/"  # directory to store figures
 
 
 #TODO: FIGURE OUT WHAT THIS DOES AND POSSIBLY DELETE IT

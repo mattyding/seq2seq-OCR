@@ -13,7 +13,8 @@ The model is stored in the [s2s](s2s/) directory and can be accessed via the Seq
 
 ## Citations:
 seq2seq model inspired from [Keras's sample program](https://git.io/JOwXq).  
-Noise function inspired by [Spell Checker](https://git.io/Jusuo).
+Noise function inspired by [Spell Checker](https://git.io/Jusuo).  
+OCR Error data from [Ted Underwood's OCR rulesets](https://github.com/tedunderwood/DataMunging/tree/master/rulesets/).
 <br/>
 Training data of historical English text taken from the following sources: [COHA](https://www.english-corpora.org/coha/), [Hansard](https://hansard.parliament.uk/), [Google's 10000 frequent English words](http://storage.googleapis.com/books/ngrams/books/datasetsv2.html).  
 

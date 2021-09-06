@@ -9,7 +9,7 @@ from tensorflow import keras
 import matplotlib.pyplot as plt
 from settings import DATA_PATH, BREAK_CHAR, ENDSEQ_CHAR, MAX_SEQ_LENGTH
 from settings import BATCH_SIZE, EPOCHS, LATENT_DIM
-from settings import SAVED_MODEL
+from settings import SAVED_MODEL, FIGURE_DIRECTORY
 
 
 def train_all_data(training_directory : str =DATA_PATH):
@@ -160,7 +160,7 @@ def train_model(training_lines : list, split_num : int, saved_model=None):
     plt.xlabel('epochs')
     plt.ylabel('accuracy')
     plt.legend()
-    plt.savefig(f"accuracy-training.png")
+    plt.savefig(FIGURE_DIRECTORY + "accuracy_training.png")
 
     print(f'"\nModel saved to "{DATA_PATH[DATA_PATH.rfind("/"):]}" folder. Accuracy graph created and saved.\n"')
 
