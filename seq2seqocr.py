@@ -1,11 +1,7 @@
-import os
-import re
-import json
 import pickle  # for lexicons
 import string
 import numpy as np
 from tensorflow import keras
-from threading import Thread, Lock
 
 from general_util import clean_text, clean_text_no_spaces
 from settings import *
@@ -15,18 +11,6 @@ UNIDENTIFIABLE_TOKEN = "[...]"
 
 # error messages
 MODEL_SCOPE_MSG = "The model is only trained to predict single words. Use the 'process_text' to run the model on multi-word strings.'"
-
-
-def main():
-    model = Seq2SeqOCR(SAVED_MODEL)  # TODO: MAYBE SWITCH MODEL BACK (CURRENTLY OVERTRAINED)
-    #print(model.predict('clty'))
-    #print(model.predict('affiftant'))
-
-    with open("SAMPLE_FILE.txt", 'r') as f:
-        sample_text = f.read()
-        asdf = model.process_text(sample_text)
-        print(asdf)
-
 
 class Seq2SeqOCR:
     def __init__(self, model_path : str =SAVED_MODEL):
@@ -68,7 +52,7 @@ class Seq2SeqOCR:
         Encodes/decodes a single word and returns the model's output.
         """
         if (type(input_word) != str) or (input_word.strip().find(' ') != -1):
-            raise ValueError(MODEL_SCOPE_MSG)
+            raise ValueError("This method is only intended to infer single words. Refer to process_text for longer strings.")
 
         clean_word = clean_text_no_spaces(input_word)
         encoded_word = self.encode_sequence(clean_word)
@@ -186,8 +170,8 @@ class Seq2SeqOCR:
             elif len(check_compound(word, self.english_lexicon, self.memoized_words)) != len(word):
                 # if cannot find valid split, returns original word (same length)
                 preprocessed_text.append(check_compound(word, self.common_lexicon, self.memoized_words))
-            # 5. Too Long (likely compound): If larger than max_seq_length, returns original word
-            elif (len(word) > MAX_SEQ_LENGTH):
+            # 5. Too Short (inaccurate predictions) or Too Long (likely missed compound)
+            elif (len(word) < MIN_SEQ_LENGTH) or (len(word) > MAX_SEQ_LENGTH):
                 preprocessed_text.append(word)
             # 6. Unknown and Inferable: if other pre-checks don't pass, feeds it to the seq2seq model
             else:

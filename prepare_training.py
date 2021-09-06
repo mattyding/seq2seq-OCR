@@ -6,7 +6,7 @@ Generates training data with forced errors.
 import os
 import numpy as np
 import string
-from settings import COHA_DIRECTORY, DATA_PATH, MAX_SEQ_LENGTH
+from settings import COHA_DIRECTORY, DATA_PATH, MAX_SEQ_LENGTH, MIN_SEQ_LENGTH
 from process_letter_sub import retrieve_prob_sub_dict, retrieve_ocr_error_dict
 from general_util import print_statusline, clean_text_no_spaces
 
@@ -28,7 +28,7 @@ def write_training_data():
             word = line.split("\t")[1]
             word = clean_text_no_spaces(word)
             # model is only evaluated on words >=3 characters
-            if len(word) <= 3 or len(word) >= MAX_SEQ_LENGTH or not word.isalpha():
+            if (len(word) < MIN_SEQ_LENGTH) or len(word) > MAX_SEQ_LENGTH or not word.isalpha():
                 continue
             noisy_word = word
             while (noisy_word == word):

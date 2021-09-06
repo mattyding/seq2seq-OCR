@@ -23,7 +23,10 @@ LATENT_DIM = 256  # latent dimensionality of the encoding space
 NUM_SAMPLES = 500000  # number of samples to train on
 BREAK_CHAR = '\t' # seperator character in data
 ENDSEQ_CHAR = '\n' # denotes end of sequence for decoder
-MAX_SEQ_LENGTH = 15 # maximum length of input sequence
+
+# shorter predictions are too inaccurate, so the model is only trained on >3-char words
+MIN_SEQ_LENGTH = 4
+MAX_SEQ_LENGTH = 14 # maximum length of input sequence
 
 DATA_PATH = dirname + "training-sets/forced_errors.txt" # path to data directory
 SAVED_MODEL = dirname + "s2s/"
