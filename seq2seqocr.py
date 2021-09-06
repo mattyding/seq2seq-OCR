@@ -180,9 +180,6 @@ class Seq2SeqOCR:
         return " ".join(preprocessed_text)
 
 
-                
-
-
 """
 Model Preparation Scripts
 """
@@ -282,14 +279,12 @@ def check_compound_recursive(word_list, english_set, found_splits):
 def populate_compound_memory(memoized_words : dict) -> None:
     """
     Populates the memoization set with several common short-word combinations.
+    These were removed from model training because to improve accuracy.
     """
+    memoized_words['thc'] = 'the'
     memoized_words['inthe'] = 'in the'
     memoized_words['ofthe'] = 'of the'
     memoized_words['forthe'] = 'for the'
     memoized_words['canbe'] = 'can be'
     memoized_words['goto'] = 'go to'
     memoized_words['orthem'] = 'or them'
-
-
-if __name__ == '__main__':
-    main()

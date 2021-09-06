@@ -1,4 +1,3 @@
 This directory contains several example notebooks that show how to use the seq2seq model on noisy text.
 
-
-I would recommend first looking at [Basic Usage](basic_usage.ipynb) to get an idea of how to use the model. 
+I would recommend first looking at [Basic Usage](basic_usage.ipynb) to get an idea of how to use the model. [Multithreading](multithreading.ipynb) provides an example of how to apply the model to large directories of text. If you are interested in adapting the model for your own use or defining specific rules for it, please consult [Custom Usage](custom_usage.ipynb).
