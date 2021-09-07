@@ -9,11 +9,6 @@ DOC_DIRECTORY variable below to be a directory containing the text to be evaluat
 # adjusting directories so that scripts can run, regardless of CWD
 dirname = __file__[:-len("settings.py")]
 
-# INFERENCE
-DOC_DIRECTORY = dirname + "testing-and-evaluation/text-to-predict/"  # text to predict
-PREDICTED_DIRECTORY = dirname + "testing-and-evaluation/predicted-text/model_v2/"  # inference results
-
-
 """
 Model Training Settings
 """
@@ -56,8 +51,3 @@ COMMON_ENG_LEXICON_PKL = dirname + "training-sets/source-data/common_hashset.pkl
 
 # GRAPHS AND REPORTS
 FIGURE_DIRECTORY = dirname + "figures/"  # directory to store figures
-
-
-#TODO: FIGURE OUT WHAT THIS DOES AND POSSIBLY DELETE IT
-# TESTING RESULTS
-RECOG_EVAL_DIRECTORY = dirname + "testing-and-evaluation/recognition-eval/"
