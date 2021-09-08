@@ -56,6 +56,7 @@ def train_model(training_lines : list, split_num : int, saved_model=None):
     input_texts = []
     target_texts = []
     for line in training_lines:
+        line = line.strip()
         input_text, target_text = line.split(BREAK_CHAR)
         target_text = BREAK_CHAR + target_text + ENDSEQ_CHAR
         input_texts.append(input_text)
@@ -134,7 +135,7 @@ def train_model(training_lines : list, split_num : int, saved_model=None):
     if saved_model:
         model = keras.models.load_model(saved_model)
 
-    earlystop = keras.callbacks.EarlyStopping(monitor='loss', patience=5, restore_best_weights=True)
+    earlystop = keras.callbacks.EarlyStopping(monitor='loss', patience=8, restore_best_weights=True)
     
     model.compile(
         optimizer="rmsprop", loss="categorical_crossentropy", metrics=["accuracy"]
@@ -154,9 +155,9 @@ def train_model(training_lines : list, split_num : int, saved_model=None):
     """
     Graph Accuracies
     """
-    plt.plot(history.history['accuracy'], label='training accuracy' + str(split_num))
-    plt.plot(history.history['val_accuracy'], label='testing accuracy' + str(split_num))
-    plt.title('Accuracy')
+    plt.plot(history.history['accuracy'], label='training ' + str(split_num))
+    plt.plot(history.history['val_accuracy'], label='testing ' + str(split_num))
+    plt.title('Training Accuracies over Groups of 500k Samples')
     plt.xlabel('epochs')
     plt.ylabel('accuracy')
     plt.legend()
