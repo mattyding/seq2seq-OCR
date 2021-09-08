@@ -9,9 +9,11 @@ The goal of this project was to develop a deep learning model to correct common 
 I would recommend looking at the [example-notebooks](example-notebooks/) directory for several examples of how to use the seq2seq model. The [Basic Usage](example-notebooks/basic_usage.ipynb) provides a broad overview of correcting text with the model, and is probably the best notebook to start off with.  
 
 ## File Overview:
-The model is stored in the [s2s](s2s/) directory and can be accessed via the Seq2SeqOCR Class defined in [seq2seqocr.py](seq2seqocr.py). The training data is stored in [training-sets](training-sets/). Other files (source data, lexicons, error probabilities) are in [source-data](training-sets/source-data/).  
+The model is stored in the [s2s](s2s/) directory and can be accessed via the Seq2SeqOCR Class defined in [seq2seqocr.py](seq2seqocr.py).  
 
-The [process_letter_sub](process_letter_sub.py) file is for preparing OCR error probabilities from Ted Underwood's data. Those error probabilities are used in [prepare_training](prepare_training.py) to force errors into our training data. The [process_lexicons](process_lexicons.py) file saves several hashsets to disk that are used in preprocessing.  
+The training data is stored in [training-sets](training-sets/). The training script is [train_model.py](train_model.py)Other files (source data, lexicons, error probabilities) are in [source-data](training-sets/source-data/).  
+
+The [process_letter_sub.py](process_letter_sub.py) file is for preparing OCR error probabilities from Ted Underwood's data. Those error probabilities are used in [prepare_training.py](prepare_training.py) to force errors into our training data. The [process_lexicons.py](process_lexicons.py) file saves several hashsets to disk that are used in preprocessing. Finally, [general_util.py](general_util.py) provides some general string functions shared between files.
 
 ## Citations:
 seq2seq model inspired from [Keras's sample program](https://git.io/JOwXq).  
