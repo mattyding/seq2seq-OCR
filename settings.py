@@ -24,7 +24,7 @@ MIN_SEQ_LENGTH = 4
 MAX_SEQ_LENGTH = 14 # maximum length of input sequence
 
 DATA_PATH = dirname + "training-sets/forced_errors.txt" # path to data directory
-SAVED_MODEL = dirname + "s2s-3-words/"
+SAVED_MODEL = dirname + "s2s/"
 
 """
 Directory Navigation
