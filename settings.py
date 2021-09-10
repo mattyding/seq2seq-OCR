@@ -1,10 +1,7 @@
 """
 settings_v2.py
 -----------
-This file contains the settings for training the second version of the correction model.
-
-NOTE: to run the model in inference mode on a different set of text files, edit the 
-DOC_DIRECTORY variable below to be a directory containing the text to be evaluated.
+This file contains settings and file locations that are shared by multiple programs.
 """
 # adjusting directories so that scripts can run, regardless of CWD
 dirname = __file__[:-len("settings.py")]
