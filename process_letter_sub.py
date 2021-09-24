@@ -6,7 +6,7 @@ This file contains several functions that prepare a dictionary of common OCR let
 The original source data is stored at LABELED_OCR_ERRORS; the source is given in the README.
 """
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 import os
 import string
 import pickle
